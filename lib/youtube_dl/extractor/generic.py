@@ -13,6 +13,7 @@ from ..utils import (
     compat_urllib_parse,
     compat_urllib_request,
     compat_urlparse,
+    compat_xml_parse_error,
 
     ExtractorError,
     HEADRequest,
@@ -241,10 +242,10 @@ class GenericIE(InfoExtractor):
 
         # Is it an RSS feed?
         try:
-            doc = xml.etree.ElementTree.fromstring(webpage)
+            doc = xml.etree.ElementTree.fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
                 return self._extract_rss(url, video_id, doc)
-        except xml.etree.ElementTree.ParseError:
+        except compat_xml_parse_error:
             pass
 
         # it's tempting to parse this further, but you would
@@ -362,11 +363,17 @@ class GenericIE(InfoExtractor):
         if mobj is not None:
             return self.url_result(mobj.group(1), 'Mpora')
 
-        # Look for embedded Novamov player
+        # Look for embedded NovaMov player
         mobj = re.search(
             r'<iframe[^>]+?src=(["\'])(?P<url>http://(?:(?:embed|www)\.)?novamov\.com/embed\.php.+?)\1', webpage)
         if mobj is not None:
-            return self.url_result(mobj.group('url'), 'Novamov')
+            return self.url_result(mobj.group('url'), 'NovaMov')
+
+        # Look for embedded NowVideo player
+        mobj = re.search(
+            r'<iframe[^>]+?src=(["\'])(?P<url>http://(?:(?:embed|www)\.)?nowvideo\.(?:ch|sx|eu)/embed\.php.+?)\1', webpage)
+        if mobj is not None:
+            return self.url_result(mobj.group('url'), 'NowVideo')
 
         # Look for embedded Facebook player
         mobj = re.search(
