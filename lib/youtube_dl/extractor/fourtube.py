@@ -9,7 +9,7 @@ from ..utils import (
     str_to_int,
     parse_duration,
 )
-from ..utils import clean_html
+from youtube_dl.utils import clean_html
 
 
 class FourTubeIE(InfoExtractor):

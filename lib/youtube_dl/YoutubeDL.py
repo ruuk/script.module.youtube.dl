@@ -370,7 +370,7 @@ class YoutubeDL(object):
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
         '''
-        if hasattr(self._err_file,'isatty') and self._err_file.isatty() and os.name != 'nt':
+        if self._err_file.isatty() and os.name != 'nt':
             _msg_header = '\033[0;33mWARNING:\033[0m'
         else:
             _msg_header = 'WARNING:'
@@ -382,7 +382,7 @@ class YoutubeDL(object):
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        if hasattr(self._err_file,'isatty') and self._err_file.isatty() and os.name != 'nt':
+        if self._err_file.isatty() and os.name != 'nt':
             _msg_header = '\033[0;31mERROR:\033[0m'
         else:
             _msg_header = 'ERROR:'

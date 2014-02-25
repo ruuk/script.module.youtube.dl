@@ -3,7 +3,8 @@ import xbmc
 
 DEBUG = False
 
-def LOG(text):
+def LOG(text,debug=False):
+	if debug and not DEBUG: return
 	print 'script.module.youtube.dl: %s' % text
 
 def ERROR(message):
@@ -12,13 +13,42 @@ def ERROR(message):
 	if DEBUG:
 		import traceback
 		traceback.print_exc()
+###############################################################################
+# FIX: xbmcout instance in sys.stderr does not have isatty(), so we add it
+###############################################################################
+class replacement_stderr(sys.stderr.__class__):
+	def isatty(self): return False
+	
+sys.stderr.__class__ = replacement_stderr
+###############################################################################
 
 try:
 	import youtube_dl
 except:
 	ERROR('Failded to import youtube-dl')
 	youtube_dl = None
-	
+
+###############################################################################
+# FIXES: datetime.datetime.strptime evaluating as None?
+###############################################################################
+_utils_unified_strdate = youtube_dl.utils.unified_strdate
+def _unified_strdate_wrap(date_str):
+	try:
+		return _utils_unified_strdate(date_str)
+	except:
+		return '00000000'
+youtube_dl.utils.unified_strdate = _unified_strdate_wrap
+
+import datetime		
+_utils_date_from_str = youtube_dl.utils.date_from_str
+def _date_from_str_wrap(date_str):
+	try:
+		return _utils_date_from_str(date_str)
+	except:
+		return datetime.datetime.now().date()
+youtube_dl.utils.date_from_str = _date_from_str_wrap
+###############################################################################
+
 _YTDL = None
 _DISABLE_DASH_VIDEO = True
 _CALLBACK = None
@@ -37,6 +67,7 @@ class VideoInfo():
 		
 	def streamURL(self):
 		if self._streams: return self._streams[0]['url']
+		return ''
 	
 	def streams(self):
 		return self._streams
@@ -48,12 +79,13 @@ class VideoInfo():
 
 class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 	def showMessage(self, msg):
+		global _CALLBACK
 		if _CALLBACK:
 			try:
 				_CALLBACK(msg)
 			except:
 				ERROR('Error in callback. Removing.')
-				global _CALLBACK
+				
 				_CALLBACK = None
 		else:
 			pass
@@ -61,6 +93,12 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 			
 	def add_info_extractor(self, ie):
 		if ie.IE_NAME in _BLACKLIST: return
+		# Fix ##################################################################
+		module = sys.modules.get(ie.__module__)
+		if module:
+			if hasattr(module,'unified_strdate'): module.unified_strdate = _unified_strdate_wrap
+			if hasattr(module,'date_from_str'): module.date_from_str = _date_from_str_wrap
+		########################################################################
 		youtube_dl.YoutubeDL.add_info_extractor(self,ie)
 
 	def to_stdout(self, message, skip_eol=False, check_quiet=False):
@@ -99,10 +137,10 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 # Private Methods					
 ###############################################################################
 def _getYTDL():
-	if _YTDL: return _YTDL
 	global _YTDL
+	if _YTDL: return _YTDL
 	if DEBUG:
-		_YTDL = youtube_dl.YoutubeDL({'verbose':True})
+		_YTDL = YoutubeDLWrapper({'verbose':True})
 	else:
 		_YTDL = YoutubeDLWrapper()
 	_YTDL.add_default_info_extractors()
@@ -123,7 +161,7 @@ def _selectVideoQuality(r,quality=1):
 		elif quality > 0:
 			minHeight = 481
 			maxHeight = 720
-		LOG('Quality: {0}'.format(quality))
+		LOG('Quality: {0}'.format(quality),debug=True)
 		urls = []
 		for entry in entries:
 			defFormat = None
@@ -153,13 +191,13 @@ def _selectVideoQuality(r,quality=1):
 						defFormat = fdata
 						defPref = p
 			if prefFormat:
-				LOG('[{3}] Using Preferred Format: {0} ({1}x{2})'.format(prefFormat['format'],prefFormat.get('width','?'),prefMax,entry.get('title','').encode('ascii','replace')))
+				LOG('[{3}] Using Preferred Format: {0} ({1}x{2})'.format(prefFormat['format'],prefFormat.get('width','?'),prefMax,entry.get('title','').encode('ascii','replace')),debug=True)
 				url = prefFormat['url']
 			elif defFormat:
-				LOG('[{3}] Using Default Format: {0} ({1}x{2})'.format(defFormat['format'],defFormat.get('width','?'),defMax,entry.get('title','').encode('ascii','replace')))
+				LOG('[{3}] Using Default Format: {0} ({1}x{2})'.format(defFormat['format'],defFormat.get('width','?'),defMax,entry.get('title','').encode('ascii','replace')),debug=True)
 				url = defFormat['url']
 			else:
-				LOG('[{3}] Using Fallback Format: {0} ({1}x{2})'.format(fallback['format'],fallback.get('width','?'),fallback.get('height','?'),entry.get('title','').encode('ascii','replace')))
+				LOG('[{3}] Using Fallback Format: {0} ({1}x{2})'.format(fallback['format'],fallback.get('width','?'),fallback.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
 				url = fallback['url']
 			if url.find("rtmp") == -1:
 				url += '|' + urllib.urlencode({'User-Agent':entry.get('user_agent') or _DEFAULT_USER_AGENT})
@@ -197,7 +235,7 @@ def getVideoInfo(url,quality=1):
 	return info
 
 	
-def mightHaveVideo(self,url):
+def mightHaveVideo(url):
 	ytdl = _getYTDL()
 	for ies in ytdl._ies:
 		if ies.suitable(url):
@@ -205,8 +243,8 @@ def mightHaveVideo(self,url):
 	return False
 	
 def disableDASHVideo(disable):
-	global DISABLE_DASH_VIDEO
-	DISABLE_DASH_VIDEO = disable
+	global _DISABLE_DASH_VIDEO
+	_DISABLE_DASH_VIDEO = disable
 
 ###############################################################################
 # xbmc player functions					

@@ -778,9 +778,8 @@ def unified_strdate(date_str):
     ]
     for expression in format_expressions:
         try:
-            upload_date = datetime.datetime.strptime(date_str, expression)
-            upload_date = upload_date.strftime('%Y%m%d')
-        except:
+            upload_date = datetime.datetime.strptime(date_str, expression).strftime('%Y%m%d')
+        except ValueError:
             pass
     if upload_date is None:
         timetuple = email.utils.parsedate_tz(date_str)
@@ -822,10 +821,7 @@ def date_from_str(date_str):
         unit += 's'
         delta = datetime.timedelta(**{unit: time})
         return today + delta
-    try:
-        return datetime.datetime.strptime(date_str, "%Y%m%d").date()
-    except:
-        return datetime.datetime.now().date()
+    return datetime.datetime.strptime(date_str, "%Y%m%d").date()
     
 def hyphenate_date(date_str):
     """
