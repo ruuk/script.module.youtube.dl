@@ -90,7 +90,22 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 		else:
 			pass
 			#print msg.encode('ascii','replace')
-			
+		
+	def progressCallback(self,info):
+		if not _CALLBACK: return
+		#'downloaded_bytes': byte_counter,
+		#'total_bytes': data_len,
+		#'tmpfilename': tmpfilename,
+		#'filename': filename,
+		#'status': 'downloading',
+		#'eta': eta,
+		#'speed': speed,               
+		text = '%s: ETA: %s Speed: %.2f' % (info.get('status','?'),info.get('eta','?'),info.get('speed') or 0)
+		self.showMessage(text)
+																
+	def clear_progress_hooks(self):
+		self._progress_hooks = []
+		
 	def add_info_extractor(self, ie):
 		if ie.IE_NAME in _BLACKLIST: return
 		# Fix ##################################################################
@@ -143,6 +158,7 @@ def _getYTDL():
 		_YTDL = YoutubeDLWrapper({'verbose':True})
 	else:
 		_YTDL = YoutubeDLWrapper()
+	_YTDL.add_progress_hook(_YTDL.progressCallback)
 	_YTDL.add_default_info_extractors()
 	return _YTDL
 	
@@ -234,6 +250,11 @@ def getVideoInfo(url,quality=1):
 		return None
 	return info
 
+def downloadVideo(url,path,quality=1,template='%(title)s-%(id)s.%(ext)s'):
+	path_template = path + template
+	ytdl = _getYTDL()
+	ytdl.params['outtmpl'] = path_template
+	ytdl.extract_info(url,download=True)
 	
 def mightHaveVideo(url):
 	ytdl = _getYTDL()
