@@ -1,4 +1,4 @@
-import urllib, sys, math
+import urllib, sys, math, re
 import xbmc
 
 DEBUG = False
@@ -127,9 +127,9 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 			pct_val = int((float(sofar)/total) * 100)
 			pct = ' (%s%%)' % pct_val
 		eta = info.get('eta') or ''
-		if eta: eta = ' ETA: ' + durationToShortText(eta)
+		if eta: eta = '  ETA: ' + durationToShortText(eta)
 		speed = info.get('speed') or ''
-		if speed: speed = ' %ss' % simpleSize(speed)
+		if speed: speed = '  %ss' % simpleSize(speed)
 		status = '%s%s:' % (info.get('status','?').title(),pct)
 		text = CallbackMessage(status + eta + speed, pct_val, info)
 		ok = self.showMessage(text)
@@ -288,11 +288,16 @@ def getVideoInfo(url,quality=1):
 		return None
 	return info
 
-def downloadVideo(url,path,format_id=None,template='%(title)s-%(id)s.%(ext)s'):
+def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.%(ext)s'):
 	path_template = path + template
 	ytdl = _getYTDL()
 	ytdl.params['outtmpl'] = path_template
-	if format_id: ytdl.params['format'] = format_id
+	ytdl.params['format'] = format_id
+	if title is None:
+		ytdl.params['matchtitle'] = None
+	else:
+		ytdl.params['matchtitle'] = '^%s$' % re.escape(title)
+		
 	try:
 		ytdl.extract_info(url,download=True)
 	except youtube_dl.DownloadError, e:
