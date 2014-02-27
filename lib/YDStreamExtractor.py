@@ -1,4 +1,4 @@
-import urllib, sys
+import urllib, sys, math
 import xbmc
 
 DEBUG = False
@@ -77,19 +77,38 @@ class VideoInfo():
 		if len(self._streams) > 1: return True
 		return False
 
+class DownloadResult:
+	def __init__(self,success, message='',status=''):
+		self.success = success
+		self.message = message
+		self.status = status
+		
+	def __nonzero__(self):
+		return self.success
+		
+class DownloadCanceledException(Exception): pass
+
+class CallbackMessage(str):
+	def __new__(self, value, pct=0, info=None):
+		return str.__new__(self, value)
+		
+	def __init__(self, value, pct=0, info=None):
+		self.percent = pct
+		self.info = info
+		
 class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 	def showMessage(self, msg):
 		global _CALLBACK
 		if _CALLBACK:
 			try:
-				_CALLBACK(msg)
+				return _CALLBACK(msg)
 			except:
 				ERROR('Error in callback. Removing.')
-				
 				_CALLBACK = None
 		else:
 			pass
 			#print msg.encode('ascii','replace')
+		return True
 		
 	def progressCallback(self,info):
 		if not _CALLBACK: return
@@ -99,9 +118,24 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 		#'filename': filename,
 		#'status': 'downloading',
 		#'eta': eta,
-		#'speed': speed,               
-		text = '%s: ETA: %s Speed: %.2f' % (info.get('status','?'),info.get('eta','?'),info.get('speed') or 0)
-		self.showMessage(text)
+		#'speed': speed
+		sofar = info.get('downloaded_bytes')
+		total = info.get('total_bytes')
+		pct = ''
+		pct_val = 0
+		if sofar != None and total:
+			pct_val = int((float(sofar)/total) * 100)
+			pct = ' (%s%%)' % pct_val
+		eta = info.get('eta') or ''
+		if eta: eta = ' ETA: ' + durationToShortText(eta)
+		speed = info.get('speed') or ''
+		if speed: speed = ' %ss' % simpleSize(speed)
+		status = '%s%s:' % (info.get('status','?').title(),pct)
+		text = CallbackMessage(status + eta + speed, pct_val, info)
+		ok = self.showMessage(text)
+		if not ok:
+			LOG('Download canceled')
+			raise DownloadCanceledException()
 																
 	def clear_progress_hooks(self):
 		self._progress_hooks = []
@@ -128,7 +162,7 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 
 	def to_stderr(self, message):
 		"""Print message to stderr."""
-		assert type(message) == type('')
+		assert type(message) == type('') or type(message) == type(u'')
 		if self.params.get('logger'):
 			self.params['logger'].error(message)
 		else:
@@ -206,20 +240,24 @@ def _selectVideoQuality(r,quality=1):
 						defMax = h
 						defFormat = fdata
 						defPref = p
+			formatID = None
 			if prefFormat:
-				LOG('[{3}] Using Preferred Format: {0} ({1}x{2})'.format(prefFormat['format'],prefFormat.get('width','?'),prefMax,entry.get('title','').encode('ascii','replace')),debug=True)
+				formatID = prefFormat['format_id']
+				LOG('[{3}] Using Preferred Format: {0} ({1}x{2})'.format(formatID,prefFormat.get('width','?'),prefMax,entry.get('title','').encode('ascii','replace')),debug=True)
 				url = prefFormat['url']
 			elif defFormat:
-				LOG('[{3}] Using Default Format: {0} ({1}x{2})'.format(defFormat['format'],defFormat.get('width','?'),defMax,entry.get('title','').encode('ascii','replace')),debug=True)
+				formatID = defFormat['format_id']
+				LOG('[{3}] Using Default Format: {0} ({1}x{2})'.format(formatID,defFormat.get('width','?'),defMax,entry.get('title','').encode('ascii','replace')),debug=True)
 				url = defFormat['url']
 			else:
-				LOG('[{3}] Using Fallback Format: {0} ({1}x{2})'.format(fallback['format'],fallback.get('width','?'),fallback.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
+				formatID = fallback['format_id']
+				LOG('[{3}] Using Fallback Format: {0} ({1}x{2})'.format(formatID,fallback.get('width','?'),fallback.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
 				url = fallback['url']
 			if url.find("rtmp") == -1:
 				url += '|' + urllib.urlencode({'User-Agent':entry.get('user_agent') or _DEFAULT_USER_AGENT})
 			else:
 				url += ' playpath='+fdata['play_path']
-			urls.append({'url':url,'title':entry.get('title',''),'thumbnail':entry.get('thumbnail','')})
+			urls.append({'url':url,'title':entry.get('title',''),'thumbnail':entry.get('thumbnail',''),'formatID':formatID})
 		return urls
 		
 def _getYoutubeDLVideo(url,quality=1):
@@ -250,11 +288,18 @@ def getVideoInfo(url,quality=1):
 		return None
 	return info
 
-def downloadVideo(url,path,quality=1,template='%(title)s-%(id)s.%(ext)s'):
+def downloadVideo(url,path,format_id=None,template='%(title)s-%(id)s.%(ext)s'):
 	path_template = path + template
 	ytdl = _getYTDL()
 	ytdl.params['outtmpl'] = path_template
-	ytdl.extract_info(url,download=True)
+	if format_id: ytdl.params['format'] = format_id
+	try:
+		ytdl.extract_info(url,download=True)
+	except youtube_dl.DownloadError, e:
+		return DownloadResult(False,e.message)
+	except DownloadCanceledException:
+		return DownloadResult(False,status='canceled')
+	return DownloadResult(True)
 	
 def mightHaveVideo(url):
 	ytdl = _getYTDL()
@@ -267,6 +312,29 @@ def disableDASHVideo(disable):
 	global _DISABLE_DASH_VIDEO
 	_DISABLE_DASH_VIDEO = disable
 
+def simpleSize(size):
+   size_name = ("B","KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size,1024)))
+   p = math.pow(1024,i)
+   s = round(size/p,2)
+   if (s > 0):
+       return '%s %s' % (s,size_name[i])
+   else:
+       return '0B'
+
+def durationToShortText(seconds):
+	days = int(seconds/86400)
+	if days: return '%sd' % days
+	left = seconds % 86400
+	hours = int(left/3600)
+	if hours: return '%sh' % hours
+	left = left % 3600
+	mins = int(left/60)
+	if mins: return '%sm' % mins
+	sec = int(left % 60)
+	if sec: return '%ss' % sec
+	return '0s'
+	
 ###############################################################################
 # xbmc player functions					
 ###############################################################################

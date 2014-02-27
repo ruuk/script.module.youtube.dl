@@ -49,15 +49,19 @@ class RtmpFD(FileDownloader):
                     data_len_str = u'~' + format_bytes(data_len)
                     self.report_progress(percent, data_len_str, speed, eta)
                     cursor_in_new_line = False
-                    self._hook_progress({
-                        'downloaded_bytes': downloaded_data_len,
-                        'total_bytes': data_len,
-                        'tmpfilename': tmpfilename,
-                        'filename': filename,
-                        'status': 'downloading',
-                        'eta': eta,
-                        'speed': speed,
-                    })
+                    try:
+                        self._hook_progress({
+                            'downloaded_bytes': downloaded_data_len,
+                            'total_bytes': data_len,
+                            'tmpfilename': tmpfilename,
+                            'filename': filename,
+                            'status': 'downloading',
+                            'eta': eta,
+                            'speed': speed,
+                        })
+                    except:
+                        proc.terminate()
+                        return False
                 else:
                     # no percent for live streams
                     mobj = re.search(r'([0-9]+\.[0-9]{3}) kB / [0-9]+\.[0-9]{2} sec', line)
@@ -67,13 +71,17 @@ class RtmpFD(FileDownloader):
                         speed = self.calc_speed(start, time_now, downloaded_data_len)
                         self.report_progress_live_stream(downloaded_data_len, speed, time_now - start)
                         cursor_in_new_line = False
-                        self._hook_progress({
-                            'downloaded_bytes': downloaded_data_len,
-                            'tmpfilename': tmpfilename,
-                            'filename': filename,
-                            'status': 'downloading',
-                            'speed': speed,
-                        })
+                        try:
+                            self._hook_progress({
+                                'downloaded_bytes': downloaded_data_len,
+                                'tmpfilename': tmpfilename,
+                                'filename': filename,
+                                'status': 'downloading',
+                                'speed': speed,
+                            })
+                        except:
+                            proc.terminate()
+                            return False
                     elif self.params.get('verbose', False):
                         if not cursor_in_new_line:
                             self.to_screen(u'')
