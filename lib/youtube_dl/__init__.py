@@ -47,12 +47,14 @@ __authors__  = (
     'Michael Kaiser',
     'Niklas Laxström',
     'David Triendl',
+    'Anthony Weems',
 )
 
 __license__ = 'Public Domain'
 
 import codecs
 import getpass
+import io
 import locale
 import optparse
 import os

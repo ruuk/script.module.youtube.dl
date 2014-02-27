@@ -137,7 +137,7 @@ from .malemotion import MalemotionIE
 from .mdr import MDRIE
 from .metacafe import MetacafeIE
 from .metacritic import MetacriticIE
-from .mit import TechTVMITIE, MITIE
+from .mit import TechTVMITIE, MITIE, OCWMITIE
 from .mixcloud import MixcloudIE
 from .mpora import MporaIE
 from .mofosex import MofosexIE
@@ -152,7 +152,10 @@ from .myspass import MySpassIE
 from .myvideo import MyVideoIE
 from .naver import NaverIE
 from .nba import NBAIE
-from .nbc import NBCNewsIE
+from .nbc import (
+    NBCIE,
+    NBCNewsIE,
+)
 from .ndr import NDRIE
 from .ndtv import NDTVIE
 from .newgrounds import NewgroundsIE

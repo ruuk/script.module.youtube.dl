@@ -78,10 +78,11 @@ class VideoInfo():
 		return False
 
 class DownloadResult:
-	def __init__(self,success, message='',status=''):
+	def __init__(self,success, message='',status='',filepath=''):
 		self.success = success
 		self.message = message
 		self.status = status
+		self.filepath = filepath
 		
 	def __nonzero__(self):
 		return self.success
@@ -89,14 +90,20 @@ class DownloadResult:
 class DownloadCanceledException(Exception): pass
 
 class CallbackMessage(str):
-	def __new__(self, value, pct=0, info=None):
+	def __new__(self, value, pct=0, eta_str='', speed_str='', info=None):
 		return str.__new__(self, value)
 		
-	def __init__(self, value, pct=0, info=None):
+	def __init__(self, value, pct=0, eta_str='', speed_str='', info=None):
 		self.percent = pct
+		self.etaStr = eta_str
+		self.speedStr = speed_str
 		self.info = info
 		
 class YoutubeDLWrapper(youtube_dl.YoutubeDL):
+	def __init__(self,*args,**kwargs):
+		self._lastDownloadedFilePath = ''
+		youtube_dl.YoutubeDL.__init__(self,*args,**kwargs)
+		
 	def showMessage(self, msg):
 		global _CALLBACK
 		if _CALLBACK:
@@ -121,22 +128,34 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 		#'speed': speed
 		sofar = info.get('downloaded_bytes')
 		total = info.get('total_bytes')
+		if info.get('filename'): self._lastDownloadedFilePath = info.get('filename')
 		pct = ''
 		pct_val = 0
 		if sofar != None and total:
 			pct_val = int((float(sofar)/total) * 100)
 			pct = ' (%s%%)' % pct_val
 		eta = info.get('eta') or ''
-		if eta: eta = '  ETA: ' + durationToShortText(eta)
+		eta_str = ''
+		if eta:
+			eta_str = durationToShortText(eta)
+			eta = '  ETA: ' + eta_str
 		speed = info.get('speed') or ''
-		if speed: speed = '  %ss' % simpleSize(speed)
+		speed_str = ''
+		if speed:
+			speed_str = simpleSize(speed) + 's'
+			speed = '  ' + speed_str
 		status = '%s%s:' % (info.get('status','?').title(),pct)
-		text = CallbackMessage(status + eta + speed, pct_val, info)
+		text = CallbackMessage(status + eta + speed, pct_val, eta_str, speed_str, info)
 		ok = self.showMessage(text)
 		if not ok:
 			LOG('Download canceled')
 			raise DownloadCanceledException()
-																
+	
+	def clearDownloadParams(self):
+		self.params['quiet'] = False
+		self.params['format'] = None
+		self.params['matchtitle'] = None
+		
 	def clear_progress_hooks(self):
 		self._progress_hooks = []
 		
@@ -262,6 +281,7 @@ def _selectVideoQuality(r,quality=1):
 		
 def _getYoutubeDLVideo(url,quality=1):
 	ytdl = _getYTDL()
+	ytdl.clearDownloadParams()
 	r = ytdl.extract_info(url,download=False)
 	urls =  _selectVideoQuality(r, quality)
 	if not urls: return None
@@ -291,6 +311,8 @@ def getVideoInfo(url,quality=1):
 def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.%(ext)s'):
 	path_template = path + template
 	ytdl = _getYTDL()
+	ytdl._lastDownloadedFilePath = ''
+	ytdl.params['quiet'] = True
 	ytdl.params['outtmpl'] = path_template
 	ytdl.params['format'] = format_id
 	if title is None:
@@ -301,10 +323,13 @@ def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.
 	try:
 		ytdl.extract_info(url,download=True)
 	except youtube_dl.DownloadError, e:
-		return DownloadResult(False,e.message)
+		return DownloadResult(False,e.message,filepath=ytdl._lastDownloadedFilePath)
 	except DownloadCanceledException:
-		return DownloadResult(False,status='canceled')
-	return DownloadResult(True)
+		return DownloadResult(False,status='canceled',filepath=ytdl._lastDownloadedFilePath)
+	finally:
+		ytdl.clearDownloadParams()
+		
+	return DownloadResult(True,filepath=ytdl._lastDownloadedFilePath)
 	
 def mightHaveVideo(url):
 	ytdl = _getYTDL()
