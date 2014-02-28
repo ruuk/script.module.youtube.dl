@@ -1,5 +1,6 @@
-import urllib, sys, math, re
+import urllib, sys, re
 import xbmc
+import YDStreamUtils as StreamUtils
 
 DEBUG = False
 
@@ -13,6 +14,7 @@ def ERROR(message):
 	if DEBUG:
 		import traceback
 		traceback.print_exc()
+		
 ###############################################################################
 # FIX: xbmcout instance in sys.stderr does not have isatty(), so we add it
 ###############################################################################
@@ -113,11 +115,12 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 				ERROR('Error in callback. Removing.')
 				_CALLBACK = None
 		else:
-			pass
+			if xbmc.abortRequested: raise Exception('abortRequested')
 			#print msg.encode('ascii','replace')
 		return True
 		
 	def progressCallback(self,info):
+		if xbmc.abortRequested: raise DownloadCanceledException('abortRequested')
 		if not _CALLBACK: return
 		#'downloaded_bytes': byte_counter,
 		#'total_bytes': data_len,
@@ -137,12 +140,12 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 		eta = info.get('eta') or ''
 		eta_str = ''
 		if eta:
-			eta_str = durationToShortText(eta)
+			eta_str = StreamUtils.durationToShortText(eta)
 			eta = '  ETA: ' + eta_str
 		speed = info.get('speed') or ''
 		speed_str = ''
 		if speed:
-			speed_str = simpleSize(speed) + 's'
+			speed_str = StreamUtils.simpleSize(speed) + 's'
 			speed = '  ' + speed_str
 		status = '%s%s:' % (info.get('status','?').title(),pct)
 		text = CallbackMessage(status + eta + speed, pct_val, eta_str, speed_str, info)
@@ -240,7 +243,10 @@ def _selectVideoQuality(r,quality=1):
 			prefMax = 0
 			prefPref = -1000
 			index = {}
-			formats = entry['formats']
+			if 'formats' in entry:
+				formats = entry['formats']
+			else:
+				formats = [entry]
 			for i in range(0,len(formats)): index[formats[i]['format_id']] = i
 			keys = sorted(index.keys())
 			fallback = formats[index[keys[0]]]
@@ -331,6 +337,20 @@ def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.
 		
 	return DownloadResult(True,filepath=ytdl._lastDownloadedFilePath)
 	
+def handleDownload(url,formatID=None,title=None,callback=None):
+	path = StreamUtils.getDownloadPath()
+	with StreamUtils.DownloadProgress() as prog:
+		try:
+			setOutputCallback(prog.updateCallback)
+			result = downloadVideo(url,path,formatID,title=title)
+		finally:
+			setOutputCallback(None)
+	if not result and result.status != 'canceled':
+			StreamUtils.showMessage(StreamUtils.T(32013),result.message)
+	elif result:
+		StreamUtils.showMessage(StreamUtils.T(32011),StreamUtils.T(32012),'',result.filepath)
+	return result
+			
 def mightHaveVideo(url):
 	ytdl = _getYTDL()
 	for ies in ytdl._ies:
@@ -341,50 +361,3 @@ def mightHaveVideo(url):
 def disableDASHVideo(disable):
 	global _DISABLE_DASH_VIDEO
 	_DISABLE_DASH_VIDEO = disable
-
-def simpleSize(size):
-   size_name = ("B","KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-   i = int(math.floor(math.log(size,1024)))
-   p = math.pow(1024,i)
-   s = round(size/p,2)
-   if (s > 0):
-       return '%s %s' % (s,size_name[i])
-   else:
-       return '0B'
-
-def durationToShortText(seconds):
-	days = int(seconds/86400)
-	if days: return '%sd' % days
-	left = seconds % 86400
-	hours = int(left/3600)
-	if hours: return '%sh' % hours
-	left = left % 3600
-	mins = int(left/60)
-	if mins: return '%sm' % mins
-	sec = int(left % 60)
-	if sec: return '%ss' % sec
-	return '0s'
-	
-###############################################################################
-# xbmc player functions					
-###############################################################################
-def play(path,preview=False):
-	xbmc.executebuiltin('PlayMedia(%s,,%s)' % (path,preview and 1 or 0))
-	
-def pause():
-	if isPlaying(): control('play')
-	
-def resume():
-	if not isPlaying(): control('play')
-	
-def current():
-	return xbmc.getInfoLabel('Player.Filenameandpath')
-
-def control(command):
-	xbmc.executebuiltin('PlayerControl(%s)' % command)
-
-def isPlaying():
-		return xbmc.getCondVisibility('Player.Playing') and xbmc.getCondVisibility('Player.HasVideo')
-	
-def playAt(path,h=0,m=0,s=0,ms=0):
-	xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Player.Open", "params": {"item":{"file":"%s"},"options":{"resume":{"hours":%s,"minutes":%s,"seconds":%s,"milliseconds":%s}}}, "id": 1}' % (path,h,m,s,ms)) #@UnusedVariable
