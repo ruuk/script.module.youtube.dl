@@ -88,6 +88,10 @@ class InfoExtractor(object):
 
     The following fields are optional:
 
+    display_id      An alternative identifier for the video, not necessarily
+                    unique, but available before title. Typically, id is
+                    something like "4234987", title "Dancing naked mole rats",
+                    and display_id "dancing-naked-mole-rats"
     thumbnails:     A list of dictionaries (with the entries "resolution" and
                     "url") for the varying thumbnails
     thumbnail:      Full URL to a video thumbnail image.
@@ -432,14 +436,14 @@ class InfoExtractor(object):
         if secure: regexes = self._og_regexes('video:secure_url') + regexes
         return self._html_search_regex(regexes, html, name, **kargs)
 
-    def _html_search_meta(self, name, html, display_name=None):
+    def _html_search_meta(self, name, html, display_name=None, fatal=False):
         if display_name is None:
             display_name = name
         return self._html_search_regex(
             r'''(?ix)<meta
                     (?=[^>]+(?:itemprop|name|property)=["\']%s["\'])
                     [^>]+content=["\']([^"\']+)["\']''' % re.escape(name),
-            html, display_name, fatal=False)
+            html, display_name, fatal=fatal)
 
     def _dc_search_uploader(self, html):
         return self._html_search_meta('dc.creator', html, 'uploader')

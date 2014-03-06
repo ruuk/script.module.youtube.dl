@@ -1,3 +1,7 @@
+*** 14.304.0 ***
+
+Now uses VideoInfo object for item selection and for format selection when downloading
+
 *** 14.227.1 ***
 
 Separate out utility functions

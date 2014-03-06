@@ -48,6 +48,8 @@ __authors__  = (
     'Niklas Laxström',
     'David Triendl',
     'Anthony Weems',
+    'David Wagner',
+    'Juan C. Olivares',
 )
 
 __license__ = 'Public Domain'
@@ -428,6 +430,8 @@ def parseOpts(overrideArguments=None):
                   '%(extractor)s for the provider (youtube, metacafe, etc), '
                   '%(id)s for the video id, %(playlist)s for the playlist the video is in, '
                   '%(playlist_index)s for the position in the playlist and %% for a literal percent. '
+                  '%(height)s and %(width)s for the width and height of the video format. '
+                  '%(resolution)s for a textual description of the resolution of the video format. '
                   'Use - to output to stdout. Can also be used to download to a different directory, '
                   'for example with -o \'/my/downloads/%(uploader)s/%(title)s-%(id)s.%(ext)s\' .'))
     filesystem.add_option('--autonumber-size',

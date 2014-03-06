@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import os, math, xbmc, xbmcgui, xbmcaddon
+import os, math, xbmc, xbmcgui, xbmcaddon, xbmcvfs
 
 T = xbmcaddon.Addon('script.module.youtube.dl').getLocalizedString
+TMP_PATH = os.path.join(xbmc.translatePath(xbmcaddon.Addon('script.module.youtube.dl').getAddonInfo('profile')),'tmp')
+if not os.path.exists(TMP_PATH): os.makedirs(TMP_PATH)
 
 ###############################################################################
 # Dialogs
@@ -67,6 +69,9 @@ class xbmcDialogProgress:
 class DownloadProgress(xbmcDialogProgress):
 	def __init__(self,heading=T(32004)):
 		xbmcDialogProgress.__init__(self,heading,update_callback=downloadProgressCallback)
+		
+	def __call__(self,info):
+		return self._updateCallback(self,info)
 
 def downloadProgressCallback(prog,data):
 	line1 = os.path.basename(data.info.get('filename',''))
@@ -85,6 +90,12 @@ def downloadProgressCallback(prog,data):
 ###############################################################################
 # Functions
 ###############################################################################
+def moveFile(file_path,dest_path):
+	fname = os.path.basename(file_path)
+	destFilePath = os.path.join(dest_path,fname)
+	xbmcvfs.copy(file_path,destFilePath)
+	xbmcvfs.delete(file_path)
+
 def getDownloadPath():
 	addon = xbmcaddon.Addon('script.module.youtube.dl')
 	useDefault = False
@@ -101,15 +112,23 @@ def getDownloadPath():
 
 SIZE_NAMES = ("B","KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
 def simpleSize(size):
-   i = int(math.floor(math.log(size,1024)))
-   p = math.pow(1024,i)
-   s = round(size/p,2)
-   if (s > 0):
-       return '%s %s' % (s,SIZE_NAMES[i])
-   else:
-       return '0B'
+	"""
+	Converts bytes to a short user friendly string
+	Example: 12345 -> 12.06 KB
+	"""
+	i = int(math.floor(math.log(size,1024)))
+	p = math.pow(1024,i)
+	s = round(size/p,2)
+	if (s > 0):
+		return '%s %s' % (s,SIZE_NAMES[i])
+	else:
+		return '0B'
 
 def durationToShortText(seconds):
+	"""
+	Converts seconds to a short user friendly string
+	Example: 143 -> 2m 23s
+	"""
 	days = int(seconds/86400)
 	if days: return '%sd' % days
 	left = seconds % 86400
@@ -126,22 +145,45 @@ def durationToShortText(seconds):
 # xbmc player functions					
 ###############################################################################
 def play(path,preview=False):
+	"""
+	Plays the video specified by path.
+	If preview is True plays in current skins preview or background.
+	"""
 	xbmc.executebuiltin('PlayMedia(%s,,%s)' % (path,preview and 1 or 0))
 	
 def pause():
+	"""
+	Pauses currently playing video.
+	"""
 	if isPlaying(): control('play')
 	
 def resume():
+	"""
+	Un-pauses currently paused video.
+	"""
 	if not isPlaying(): control('play')
 	
 def current():
+	"""
+	Returns the currently playing file.
+	"""
 	return xbmc.getInfoLabel('Player.Filenameandpath')
 
 def control(command):
+	"""
+	Send the command to the player.
+	"""
 	xbmc.executebuiltin('PlayerControl(%s)' % command)
 
 def isPlaying():
-		return xbmc.getCondVisibility('Player.Playing') and xbmc.getCondVisibility('Player.HasVideo')
+	"""
+	Returns True if the player is playing video.
+	"""
+	return xbmc.getCondVisibility('Player.Playing') and xbmc.getCondVisibility('Player.HasVideo')
 	
 def playAt(path,h=0,m=0,s=0,ms=0):
+	"""
+	Plays the video specified by path.
+	Optionally set the start position with h,m,s,ms keyword args.
+	"""
 	xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "Player.Open", "params": {"item":{"file":"%s"},"options":{"resume":{"hours":%s,"minutes":%s,"seconds":%s,"milliseconds":%s}}}, "id": 1}' % (path,h,m,s,ms)) #@UnusedVariable

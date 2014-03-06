@@ -1,4 +1,4 @@
-import urllib, sys, re
+import urllib, sys, re, os
 import xbmc
 import YDStreamUtils as StreamUtils
 
@@ -57,7 +57,12 @@ _CALLBACK = None
 _BLACKLIST = ['youtube:playlist', 'youtube:toplist', 'youtube:channel', 'youtube:user', 'youtube:search', 'youtube:show', 'youtube:favorites', 'youtube:truncated_url','vimeo:channel', 'vimeo:user', 'vimeo:album', 'vimeo:group', 'vimeo:review','dailymotion:playlist', 'dailymotion:user','generic']
 _DEFAULT_USER_AGENT = 'Mozilla/5.0+(Windows+NT+6.2;+Win64;+x64;+rv:16.0.1)+Gecko/20121011+Firefox/16.0.1'
 
-class VideoInfo():
+class VideoInfo:
+	"""
+	Represents resolved site video
+	Has the properties title, description, thumbnail and webpage
+	The info property contains the original youtube-dl info
+	"""
 	def __init__(self,ID=None):
 		self.ID = ID
 		self.title = ''
@@ -66,20 +71,65 @@ class VideoInfo():
 		self.webpage = ''
 		self._streams = None
 		self.sourceName = ''
+		self.info = None
+		self._selection = None
+		
+	def __len__(self):
+		return len(self._streams)
 		
 	def streamURL(self):
-		if self._streams: return self._streams[0]['url']
-		return ''
+		"""
+		Returns the resolved xbmc ready url of the selected stream
+		"""
+		return self.selectedStream()['xbmc_url']
 	
 	def streams(self):
+		"""
+		Returns a list of dicts of stream data:
+			{'xbmc_url':<xbmc ready resolved stream url>,
+			'url':<base resolved stream url>,
+			'title':<stream specific title>,
+			'thumbnail':<stream specific thumbnail>,
+			'formatID':<chosen format id>}
+		"""
 		return self._streams
 		
 	def hasMultipleStreams(self):
+		"""
+		Return True if there is more than one stream
+		"""
 		if not self._streams: return False
 		if len(self._streams) > 1: return True
 		return False
+		
+	def selectStream(self,idx):
+		"""
+		Select the default stream by index or by passing the stream dict
+		"""
+		if isinstance(idx,dict):
+			self._selection = idx['idx']
+		else:
+			self._selection = idx
+		
+	def selectedStream(self):
+		"""
+		Returns the info of the currently selected stream
+		"""
+		if self._selection == None: return self._streams[0]
+		return self._streams[self._selection]
 
 class DownloadResult:
+	"""
+	Represents a download result. Evaluates as non-zero on success.
+	Ex. usage:
+	dr = handleDownload(url,formatID,title)
+	if dr:
+		print 'Successfully downloaded %s' % dr.filepath
+	else:
+		if not dr.status == 'canceled':
+			print 'Download failed: %s' % dr.message 
+	
+	"""
 	def __init__(self,success, message='',status='',filepath=''):
 		self.success = success
 		self.message = message
@@ -92,6 +142,14 @@ class DownloadResult:
 class DownloadCanceledException(Exception): pass
 
 class CallbackMessage(str):
+	"""
+	A callback message. Subclass of string so can be displayed/printed as is.
+	Has the following extra properties:
+		percent		<- Integer download progress or 0 if not available
+		etaStr		<- ETA string ex: 3m 25s
+		speedStr	<- Speed string ex: 35 KBs
+		info		<- dict of the youtube-dl progress info
+	"""
 	def __new__(self, value, pct=0, eta_str='', speed_str='', info=None):
 		return str.__new__(self, value)
 		
@@ -102,6 +160,11 @@ class CallbackMessage(str):
 		self.info = info
 		
 class YoutubeDLWrapper(youtube_dl.YoutubeDL):
+	"""
+	A wrapper for youtube_dl.YoutubeDL providing message handling and 
+	progress callback.
+	It also overrides XBMC environment error causing methods.
+	"""
 	def __init__(self,*args,**kwargs):
 		self._lastDownloadedFilePath = ''
 		youtube_dl.YoutubeDL.__init__(self,*args,**kwargs)
@@ -224,7 +287,8 @@ def _selectVideoQuality(r,quality=1):
 		elif 'formats' in r and r['formats']:
 			entries = [r]
 		elif 'url' in r:
-			return [{'url':r['url'],'title':r.get('title',''),'thumbnail':r.get('thumbnail','')}]
+			r['formats'] = [r]
+			entries = [r]
 		minHeight = 0
 		maxHeight = 480
 		if quality > 1:
@@ -235,6 +299,7 @@ def _selectVideoQuality(r,quality=1):
 			maxHeight = 720
 		LOG('Quality: {0}'.format(quality),debug=True)
 		urls = []
+		idx=0
 		for entry in entries:
 			defFormat = None
 			defMax = 0
@@ -267,22 +332,25 @@ def _selectVideoQuality(r,quality=1):
 						defPref = p
 			formatID = None
 			if prefFormat:
-				formatID = prefFormat['format_id']
-				LOG('[{3}] Using Preferred Format: {0} ({1}x{2})'.format(formatID,prefFormat.get('width','?'),prefMax,entry.get('title','').encode('ascii','replace')),debug=True)
-				url = prefFormat['url']
+				info = prefFormat
+				logBase = '[{3}] Using Preferred Format: {0} ({1}x{2})'
 			elif defFormat:
-				formatID = defFormat['format_id']
-				LOG('[{3}] Using Default Format: {0} ({1}x{2})'.format(formatID,defFormat.get('width','?'),defMax,entry.get('title','').encode('ascii','replace')),debug=True)
-				url = defFormat['url']
+				info = defFormat
+				logBase = '[{3}] Using Default Format: {0} ({1}x{2})'
 			else:
-				formatID = fallback['format_id']
-				LOG('[{3}] Using Fallback Format: {0} ({1}x{2})'.format(formatID,fallback.get('width','?'),fallback.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
-				url = fallback['url']
+				info = fallback
+				logBase = '[{3}] Using Fallback Format: {0} ({1}x{2})'
+			url = info['url']
+			formatID = info['format_id']
+			LOG(logBase.format(formatID,info.get('width','?'),info.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
 			if url.find("rtmp") == -1:
 				url += '|' + urllib.urlencode({'User-Agent':entry.get('user_agent') or _DEFAULT_USER_AGENT})
 			else:
 				url += ' playpath='+fdata['play_path']
-			urls.append({'url':url,'title':entry.get('title',''),'thumbnail':entry.get('thumbnail',''),'formatID':formatID})
+			new_info = dict(entry)
+			new_info.update(info)
+			urls.append({'xbmc_url':url,'url':info['url'],'title':entry.get('title',''),'thumbnail':entry.get('thumbnail',''),'formatID':formatID,'idx':idx,'ytdl_format':new_info})
+			idx+=1
 		return urls
 		
 def _getYoutubeDLVideo(url,quality=1):
@@ -296,16 +364,28 @@ def _getYoutubeDLVideo(url,quality=1):
 	info.title = r.get('title',urls[0]['title'])
 	info.description = r.get('description','')
 	info.thumbnail = r.get('thumbnail',urls[0]['thumbnail'])
+	info.sourceName = r.get('extractor','')
+	info.info = r
 	return info
 
 ###############################################################################
 # Public Methods					
 ###############################################################################
 def setOutputCallback(callback):
+	"""
+	Sets a callback for youtube-dl output or progress updates.
+	Must return True to continue or False to cancel.
+	Will be called with CallbackMessage object.
+	If the callback raises an exception it will be disabled.
+	"""
 	global _CALLBACK
 	_CALLBACK = callback
 	
 def getVideoInfo(url,quality=1):
+	"""
+	Returns a VideoInfo object or None.
+	Quality is 0=SD, 1=720p, 2=1080p and is a maximum.
+	"""
 	try:
 		info = _getYoutubeDLVideo(url,quality)
 		if not info: return None
@@ -314,20 +394,21 @@ def getVideoInfo(url,quality=1):
 		return None
 	return info
 
-def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.%(ext)s'):
-	path_template = path + template
+def downloadVideo(vidinfo,path,template='%(title)s-%(id)s.%(ext)s'):
+	"""
+	Download the selected video in vidinfo to path.
+	Template sets the youtube-dl format which defaults to TITLE-ID.EXT.
+	Returns a DownloadResult object.
+	"""
+			
+	path_template = os.path.join(path,template)
 	ytdl = _getYTDL()
 	ytdl._lastDownloadedFilePath = ''
 	ytdl.params['quiet'] = True
 	ytdl.params['outtmpl'] = path_template
-	ytdl.params['format'] = format_id
-	if title is None:
-		ytdl.params['matchtitle'] = None
-	else:
-		ytdl.params['matchtitle'] = '^%s$' % re.escape(title)
-		
+
 	try:
-		ytdl.extract_info(url,download=True)
+		downloadDirect(vidinfo)
 	except youtube_dl.DownloadError, e:
 		return DownloadResult(False,e.message,filepath=ytdl._lastDownloadedFilePath)
 	except DownloadCanceledException:
@@ -337,27 +418,43 @@ def downloadVideo(url,path,format_id=None,title=None,template='%(title)s-%(id)s.
 		
 	return DownloadResult(True,filepath=ytdl._lastDownloadedFilePath)
 	
-def handleDownload(url,formatID=None,title=None,callback=None):
+def downloadDirect(vidinfo):
+	ytdl = _getYTDL()
+	return ytdl.process_info(vidinfo.selectedStream()['ytdl_format'])
+		
+def handleDownload(vidinfo):
+	"""
+	Download the selected video in vidinfo to a path the user chooses.
+	Displays a progress dialog and ok/error message when finished.
+	Returns a DownloadResult object.
+	"""
 	path = StreamUtils.getDownloadPath()
 	with StreamUtils.DownloadProgress() as prog:
 		try:
 			setOutputCallback(prog.updateCallback)
-			result = downloadVideo(url,path,formatID,title=title)
+			result = downloadVideo(vidinfo,StreamUtils.TMP_PATH)
 		finally:
 			setOutputCallback(None)
 	if not result and result.status != 'canceled':
 			StreamUtils.showMessage(StreamUtils.T(32013),result.message)
 	elif result:
 		StreamUtils.showMessage(StreamUtils.T(32011),StreamUtils.T(32012),'',result.filepath)
+	StreamUtils.moveFile(result.filepath,path)
 	return result
 			
 def mightHaveVideo(url):
+	"""
+	Returns True if the url matches against one of the handled site URLs.
+	"""
 	ytdl = _getYTDL()
 	for ies in ytdl._ies:
 		if ies.suitable(url):
 			return True
 	return False
 	
-def disableDASHVideo(disable):
+def disableDASHVideo(disable=True):
+	"""
+	True to disable choosing MPEG DASH streams.
+	"""
 	global _DISABLE_DASH_VIDEO
 	_DISABLE_DASH_VIDEO = disable
