@@ -1,6 +1,9 @@
 import urllib, sys, re, os
 import xbmc
 import YDStreamUtils as StreamUtils
+from youtube_dl.utils import (
+	std_headers,
+)
 
 DEBUG = False
 
@@ -344,7 +347,7 @@ def _selectVideoQuality(r,quality=1):
 			formatID = info['format_id']
 			LOG(logBase.format(formatID,info.get('width','?'),info.get('height','?'),entry.get('title','').encode('ascii','replace')),debug=True)
 			if url.find("rtmp") == -1:
-				url += '|' + urllib.urlencode({'User-Agent':entry.get('user_agent') or _DEFAULT_USER_AGENT})
+				url += '|' + urllib.urlencode({'User-Agent':entry.get('user_agent') or std_headers['User-Agent']})
 			else:
 				url += ' playpath='+fdata['play_path']
 			new_info = dict(entry)
