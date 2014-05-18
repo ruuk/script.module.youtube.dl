@@ -58,7 +58,6 @@ _YTDL = None
 _DISABLE_DASH_VIDEO = True
 _CALLBACK = None
 _BLACKLIST = ['youtube:playlist', 'youtube:toplist', 'youtube:channel', 'youtube:user', 'youtube:search', 'youtube:show', 'youtube:favorites', 'youtube:truncated_url','vimeo:channel', 'vimeo:user', 'vimeo:album', 'vimeo:group', 'vimeo:review','dailymotion:playlist', 'dailymotion:user','generic']
-_DEFAULT_USER_AGENT = 'Mozilla/5.0+(Windows+NT+6.2;+Win64;+x64;+rv:16.0.1)+Gecko/20121011+Firefox/16.0.1'
 
 class VideoInfo:
 	"""
