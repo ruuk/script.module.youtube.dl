@@ -1,3 +1,7 @@
+*** 14.304.1 ***
+
+Use default User-Agent from youtube_dl module when creating xbmc url for rtmp streams - fix by: hojel (Hoje Lee)
+
 *** 14.304.0 ***
 
 Now uses VideoInfo object for item selection and for format selection when downloading

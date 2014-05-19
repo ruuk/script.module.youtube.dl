@@ -1,4 +1,4 @@
-import urllib, sys, re, os
+import urllib, sys, os
 import xbmc
 import YDStreamUtils as StreamUtils
 from youtube_dl.utils import (
