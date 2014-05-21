@@ -6,7 +6,10 @@ from random import random
 from math import floor
 
 from .common import InfoExtractor
-from ..utils import compat_urllib_request
+from ..utils import (
+    compat_urllib_request,
+    ExtractorError,
+)
 
 
 class IPrimaIE(InfoExtractor):
@@ -36,6 +39,7 @@ class IPrimaIE(InfoExtractor):
         'params': {
             'skip_download': True,  # requires rtmpdump
         },
+        'skip': 'Do not have permission to access this page',
     }]
 
     def _real_extract(self, url):
@@ -43,6 +47,10 @@ class IPrimaIE(InfoExtractor):
         video_id = mobj.group('id')
 
         webpage = self._download_webpage(url, video_id)
+
+        if re.search(r'Nemáte oprávnění přistupovat na tuto stránku\.\s*</div>', webpage):
+            raise ExtractorError(
+                '%s said: You do not have permission to access this page' % self.IE_NAME, expected=True)
 
         player_url = (
             'http://embed.livebox.cz/iprimaplay/player-embed-v2.js?__tok%s__=%s' %

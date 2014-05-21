@@ -2,7 +2,6 @@ from __future__ import unicode_literals
 
 import re
 import xml.etree.ElementTree
-import datetime
 
 from .common import InfoExtractor
 from ..utils import (
@@ -22,6 +21,7 @@ class VevoIE(InfoExtractor):
            https?://videoplayer\.vevo\.com/embed/embedded\?videoId=|
            vevo:)
         (?P<id>[^&?#]+)'''
+
     _TESTS = [{
         'url': 'http://www.vevo.com/watch/hurts/somebody-to-die-for/GB1101300280',
         "md5": "06bea460acb744eab74a9d7dcb4bfd61",
@@ -34,6 +34,8 @@ class VevoIE(InfoExtractor):
             "duration": 230.12,
             "width": 1920,
             "height": 1080,
+            # timestamp and upload_date are often incorrect; seem to change randomly
+            'timestamp': int,
         }
     }, {
         'note': 'v3 SMIL format',
@@ -47,6 +49,7 @@ class VevoIE(InfoExtractor):
             'title': 'I Wish I Could Break Your Heart',
             'duration': 226.101,
             'age_limit': 0,
+            'timestamp': int,
         }
     }, {
         'note': 'Age-limited video',
@@ -57,7 +60,8 @@ class VevoIE(InfoExtractor):
             'age_limit': 18,
             'title': 'Tunnel Vision (Explicit)',
             'uploader': 'Justin Timberlake',
-            'upload_date': '20130704',
+            'upload_date': 're:2013070[34]',
+            'timestamp': int,
         },
         'params': {
             'skip_download': 'true',
@@ -130,7 +134,13 @@ class VevoIE(InfoExtractor):
         video_id = mobj.group('id')
 
         json_url = 'http://videoplayer.vevo.com/VideoService/AuthenticateVideo?isrc=%s' % video_id
-        video_info = self._download_json(json_url, video_id)['video']
+        response = self._download_json(json_url, video_id)
+        video_info = response['video']
+
+        if not video_info:
+            if 'statusMessage' in response:
+                raise ExtractorError('%s said: %s' % (self.IE_NAME, response['statusMessage']), expected=True)
+            raise ExtractorError('Unable to extract videos')
 
         formats = self._formats_from_json(video_info)
 
@@ -169,13 +179,13 @@ class VevoIE(InfoExtractor):
 
         timestamp_ms = int(self._search_regex(
             r'/Date\((\d+)\)/', video_info['launchDate'], 'launch date'))
-        upload_date = datetime.datetime.fromtimestamp(timestamp_ms // 1000)
+
         return {
             'id': video_id,
             'title': video_info['title'],
             'formats': formats,
             'thumbnail': video_info['imageUrl'],
-            'upload_date': upload_date.strftime('%Y%m%d'),
+            'timestamp': timestamp_ms // 1000,
             'uploader': video_info['mainArtists'][0]['artistName'],
             'duration': video_info['duration'],
             'age_limit': age_limit,

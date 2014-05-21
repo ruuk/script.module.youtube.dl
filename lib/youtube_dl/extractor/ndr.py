@@ -4,7 +4,10 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..utils import ExtractorError
+from ..utils import (
+    ExtractorError,
+    int_or_none,
+)
 
 
 class NDRIE(InfoExtractor):
@@ -45,13 +48,12 @@ class NDRIE(InfoExtractor):
 
         page = self._download_webpage(url, video_id, 'Downloading page')
 
-        title = self._og_search_title(page)
+        title = self._og_search_title(page).strip()
         description = self._og_search_description(page)
+        if description:
+            description = description.strip()
 
-        mobj = re.search(
-            r'<div class="duration"><span class="min">(?P<minutes>\d+)</span>:<span class="sec">(?P<seconds>\d+)</span></div>',
-            page)
-        duration = int(mobj.group('minutes')) * 60 + int(mobj.group('seconds')) if mobj else None
+        duration = int_or_none(self._html_search_regex(r'duration: (\d+),\n', page, 'duration', fatal=False))
 
         formats = []
 
@@ -66,10 +68,12 @@ class NDRIE(InfoExtractor):
 
         video_url = re.search(r'''3: {src:'(?P<video>.+?)\.hi\.mp4', type:"video/mp4"},''', page)
         if video_url:
-            thumbnail = self._html_search_regex(r'(?m)title: "NDR PLAYER",\s*poster: "([^"]+)",',
-                page, 'thumbnail', fatal=False)
-            if thumbnail:
-                thumbnail = 'http://www.ndr.de' + thumbnail
+            thumbnails = re.findall(r'''\d+: {src: "([^"]+)"(?: \|\| '[^']+')?, quality: '([^']+)'}''', page)
+            if thumbnails:
+                QUALITIES = ['xs', 's', 'm', 'l', 'xl']
+                thumbnails.sort(key=lambda thumb: QUALITIES.index(thumb[1]) if thumb[1] in QUALITIES else -1)
+                thumbnail = 'http://www.ndr.de' + thumbnails[-1][0]
+
             for format_id in ['lo', 'hi', 'hq']:
                 formats.append({
                     'url': '%s.%s.mp4' % (video_url.group('video'), format_id),
