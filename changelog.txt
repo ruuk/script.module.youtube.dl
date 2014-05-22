@@ -1,3 +1,7 @@
+*** 14.519.1 ***
+
+Added argument resolve_redirects=False to getVideoInfo() and mightHaveVideo()
+
 *** 14.519.0 ***
 
 Update youtube-dl core

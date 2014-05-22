@@ -1,4 +1,4 @@
-import urllib, sys, os
+import urllib, sys, os, urlparse, httplib
 import xbmc
 import YDStreamUtils as StreamUtils
 from youtube_dl.utils import (
@@ -355,7 +355,32 @@ def _selectVideoQuality(r,quality=1):
 			idx+=1
 		return urls
 		
-def _getYoutubeDLVideo(url,quality=1):
+
+# Recursively follow redirects until there isn't a location header
+# Credit to: Zachary Witte @ http://www.zacwitte.com/resolving-http-redirects-in-python
+def resolve_http_redirect(url, depth=0):
+	if depth > 10:
+		raise Exception("Redirected "+depth+" times, giving up.")
+	o = urlparse.urlparse(url,allow_fragments=True)
+	conn = httplib.HTTPConnection(o.netloc)
+	path = o.path
+	if o.query:
+		path +='?'+o.query
+	conn.request("HEAD", path,headers={'User-Agent':std_headers['User-Agent']})
+	res = conn.getresponse()
+	headers = dict(res.getheaders())
+	if headers.has_key('location') and headers['location'] != url:
+		return resolve_http_redirect(headers['location'], depth+1)
+	else:
+		return url
+								
+def _getYoutubeDLVideo(url,quality=1,resolve_redirects=False):
+	if resolve_redirects:
+		try:
+			url = resolve_http_redirect(url)
+		except:
+			ERROR('_getYoutubeDLVideo(): Failed to resolve URL')
+			return None
 	ytdl = _getYTDL()
 	ytdl.clearDownloadParams()
 	r = ytdl.extract_info(url,download=False)
@@ -383,13 +408,13 @@ def setOutputCallback(callback):
 	global _CALLBACK
 	_CALLBACK = callback
 	
-def getVideoInfo(url,quality=1):
+def getVideoInfo(url,quality=1,resolve_redirects=False):
 	"""
 	Returns a VideoInfo object or None.
 	Quality is 0=SD, 1=720p, 2=1080p and is a maximum.
 	"""
 	try:
-		info = _getYoutubeDLVideo(url,quality)
+		info = _getYoutubeDLVideo(url,quality,resolve_redirects)
 		if not info: return None
 	except:
 		ERROR('_getYoutubeDLVideo() failed')
@@ -444,10 +469,17 @@ def handleDownload(vidinfo):
 	StreamUtils.moveFile(result.filepath,path)
 	return result
 			
-def mightHaveVideo(url):
+def mightHaveVideo(url,resolve_redirects=False):
 	"""
 	Returns True if the url matches against one of the handled site URLs.
 	"""
+	if resolve_redirects:
+		try:
+			url = resolve_http_redirect(url)
+		except:
+			ERROR('mightHaveVideo(): Failed to resolve URL')
+			return False
+			
 	ytdl = _getYTDL()
 	for ies in ytdl._ies:
 		if ies.suitable(url):
