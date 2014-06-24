@@ -56,6 +56,9 @@ __authors__  = (
     'Nicolas Évrard',
     'Jason Normore',
     'Hoje Lee',
+    'Adam Thalhammer',
+    'Georg Jähnig',
+    'Ralf Haring',
 )
 
 __license__ = 'Public Domain'

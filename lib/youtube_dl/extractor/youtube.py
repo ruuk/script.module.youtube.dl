@@ -223,6 +223,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
         '246': {'ext': 'webm', 'height': 480, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '247': {'ext': 'webm', 'height': 720, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '248': {'ext': 'webm', 'height': 1080, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
+        '271': {'ext': 'webm', 'height': 1440, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
+        '272': {'ext': 'webm', 'height': 2160, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
 
         # Dash webm audio
         '171': {'ext': 'webm', 'vcodec': 'none', 'format_note': 'DASH audio', 'abr': 48, 'preference': -50},
@@ -439,7 +441,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
 
     def _parse_sig_js(self, jscode):
         funcname = self._search_regex(
-            r'signature=([a-zA-Z]+)', jscode,
+            r'signature=([$a-zA-Z]+)', jscode,
              u'Initial JS player signature function name')
 
         jsi = JSInterpreter(jscode)
@@ -1140,7 +1142,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
         mobj = re.search(r'(?s)id="eow-date.*?>(.*?)</span>', video_webpage)
         if mobj is None:
             mobj = re.search(
-                r'(?s)id="watch-uploader-info".*?>.*?(?:Published|Uploaded) on (.*?)</strong>',
+                r'(?s)id="watch-uploader-info".*?>.*?(?:Published|Uploaded|Streamed live) on (.*?)</strong>',
                 video_webpage)
         if mobj is not None:
             upload_date = ' '.join(re.sub(r'[/,-]', r' ', mobj.group(1)).split())
@@ -1385,13 +1387,13 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
                         |  p/
                         )
                         (
-                            (?:PL|EC|UU|FL|RD)?[0-9A-Za-z-_]{10,}
+                            (?:PL|LL|EC|UU|FL|RD)?[0-9A-Za-z-_]{10,}
                             # Top tracks, they can also include dots 
                             |(?:MC)[\w\.]*
                         )
                         .*
                      |
-                        ((?:PL|EC|UU|FL|RD)[0-9A-Za-z-_]{10,})
+                        ((?:PL|LL|EC|UU|FL|RD)[0-9A-Za-z-_]{10,})
                      )"""
     _TEMPLATE_URL = 'https://www.youtube.com/playlist?list=%s'
     _MORE_PAGES_INDICATOR = r'data-link-type="next"'
@@ -1414,11 +1416,9 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         title_span = (search_title('playlist-title') or
             search_title('title long-title') or search_title('title'))
         title = clean_html(title_span)
-        video_re = r'''(?x)data-video-username="(.*?)".*?
+        video_re = r'''(?x)data-video-username=".*?".*?
                        href="/watch\?v=([0-9A-Za-z_-]{11})&amp;[^"]*?list=%s''' % re.escape(playlist_id)
-        matches = orderedSet(re.findall(video_re, webpage, flags=re.DOTALL))
-        # Some of the videos may have been deleted, their username field is empty
-        ids = [video_id for (username, video_id) in matches if username]
+        ids = orderedSet(re.findall(video_re, webpage, flags=re.DOTALL))
         url_results = self._ids_to_results(ids)
 
         return self.playlist_result(url_results, playlist_id, title)

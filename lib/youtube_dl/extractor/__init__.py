@@ -109,6 +109,7 @@ from .gdcvault import GDCVaultIE
 from .generic import GenericIE
 from .googleplus import GooglePlusIE
 from .googlesearch import GoogleSearchIE
+from .gorillavid import GorillaVidIE
 from .hark import HarkIE
 from .helsinki import HelsinkiIE
 from .hentaistigma import HentaiStigmaIE
@@ -142,6 +143,7 @@ from .khanacademy import KhanAcademyIE
 from .kickstarter import KickStarterIE
 from .keek import KeekIE
 from .kontrtube import KontrTubeIE
+from .ku6 import Ku6IE
 from .la7 import LA7IE
 from .lifenews import LifeNewsIE
 from .liveleak import LiveLeakIE
@@ -168,6 +170,7 @@ from .moviezine import MoviezineIE
 from .movshare import MovShareIE
 from .mtv import (
     MTVIE,
+    MTVServicesEmbeddedIE,
     MTVIggyIE,
 )
 from .musicplayon import MusicPlayOnIE
@@ -194,7 +197,10 @@ from .normalboots import NormalbootsIE
 from .novamov import NovaMovIE
 from .nowness import NownessIE
 from .nowvideo import NowVideoIE
-from .nrk import NRKIE
+from .nrk import (
+    NRKIE,
+    NRKTVIE,
+)
 from .ntv import NTVIE
 from .nytimes import NYTimesIE
 from .nuvid import NuvidIE
@@ -212,6 +218,7 @@ from .pornotube import PornotubeIE
 from .prosiebensat1 import ProSiebenSat1IE
 from .pyvideo import PyvideoIE
 from .radiofrance import RadioFranceIE
+from .rai import RaiIE
 from .rbmaradio import RBMARadioIE
 from .redtube import RedTubeIE
 from .ringtv import RingTVIE
@@ -255,13 +262,21 @@ from .southparkstudios import (
 from .space import SpaceIE
 from .spankwire import SpankwireIE
 from .spiegel import SpiegelIE
+from .spiegeltv import SpiegeltvIE
 from .spike import SpikeIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .steam import SteamIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
+from .swrmediathek import SWRMediathekIE
 from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
+from .tagesschau import TagesschauIE
+from .teachertube import (
+    TeacherTubeIE,
+    TeacherTubeClassroomIE,
+)
+from .teachingchannel import TeachingChannelIE
 from .teamcoco import TeamcocoIE
 from .techtalks import TechTalksIE
 from .ted import TEDIE
@@ -294,6 +309,7 @@ from .veehd import VeeHDIE
 from .veoh import VeohIE
 from .vesti import VestiIE
 from .vevo import VevoIE
+from .vh1 import VH1IE
 from .viddler import ViddlerIE
 from .videobam import VideoBamIE
 from .videodetective import VideoDetectiveIE
@@ -319,6 +335,7 @@ from .viki import VikiIE
 from .vk import VKIE
 from .vube import VubeIE
 from .vuclip import VuClipIE
+from .vulture import VultureIE
 from .washingtonpost import WashingtonPostIE
 from .wat import WatIE
 from .wdr import (
@@ -330,6 +347,7 @@ from .weibo import WeiboIE
 from .wimp import WimpIE
 from .wistia import WistiaIE
 from .worldstarhiphop import WorldStarHipHopIE
+from .wrzuta import WrzutaIE
 from .xbef import XBefIE
 from .xhamster import XHamsterIE
 from .xnxx import XNXXIE
