@@ -9,7 +9,7 @@
 		<summary lang="en">Module providing access to youtube-dl video stream extraction</summary>
 		<description lang="en">Module providing access to youtube-dl video stream extraction for over 270 sites. Version is based on youtube-dl date version: YY.MDD.V where V is the addon specific sub-version.</description>
 		<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
-		<forum></forum>
+		<forum>http://forum.xbmc.org/showthread.php?tid=200877</forum>
 		<source>http://github.com/ruuk/script.module.youtube.dl</source>
 	</extension>
 </addon>
