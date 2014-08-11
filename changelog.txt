@@ -1,3 +1,9 @@
+
+** 14.810.0 ***
+
+Update youtube-dl core to 2014.08.10
+Initial submission to official repository
+
 *** 14.624.0 ***
 
 Update youtube-dl core to 2014.06.24.1

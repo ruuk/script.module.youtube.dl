@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.module.youtube.dl" name="youtube-dl" version="14.624.0" provider-name="Rick Phillips (ruuk)">
+<addon id="script.module.youtube.dl" name="youtube-dl" version="14.810.0" provider-name="Rick Phillips (ruuk)">
 	<requires>
 		<import addon="xbmc.python" version="2.1.0" />
 	</requires>
@@ -7,7 +7,7 @@
 	<extension point="xbmc.addon.metadata">
 		<platform>all</platform>
 		<summary lang="en">Module providing access to youtube-dl video stream extraction</summary>
-		<description lang="en">Module providing access to youtube-dl video stream extraction for over 240 sites. Version is based on youtube-dl date version: YY.MDD.V where V is the addon specific sub-version.</description>
+		<description lang="en">Module providing access to youtube-dl video stream extraction for over 270 sites. Version is based on youtube-dl date version: YY.MDD.V where V is the addon specific sub-version.</description>
 		<license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
 		<forum></forum>
 		<source>http://github.com/ruuk/script.module.youtube.dl</source>
