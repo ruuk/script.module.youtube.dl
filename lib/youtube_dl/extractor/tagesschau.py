@@ -19,16 +19,6 @@ class TagesschauIE(InfoExtractor):
             'description': 'md5:69da3c61275b426426d711bde96463ab',
             'thumbnail': 're:^http:.*\.jpg$',
         },
-    }, {
-        'url': 'http://www.tagesschau.de/multimedia/video/video-196.html',
-        'md5': '8aaa8bf3ae1ca2652309718c03019128',
-        'info_dict': {
-            'id': '196',
-            'ext': 'mp4',
-            'title': 'Ukraine-Konflikt: Klitschko in Kiew als Bürgermeister vereidigt',
-            'description': 'md5:f22e4af75821d174fa6c977349682691',
-            'thumbnail': 're:http://.*\.jpg',
-        },
     }]
 
     _FORMATS = {
