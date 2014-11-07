@@ -4,6 +4,7 @@ import YDStreamUtils as StreamUtils
 from youtube_dl.utils import (
     std_headers,
 )
+import util
 
 DEBUG = False
 
@@ -413,6 +414,7 @@ def setOutputCallback(callback):
     global _CALLBACK
     _CALLBACK = callback
 
+@util.busyDialog
 def getVideoInfo(url,quality=1,resolve_redirects=False):
     """
     Returns a VideoInfo object or None.

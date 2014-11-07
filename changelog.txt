@@ -1,9 +1,10 @@
 *** 14.1104.0 ***
 
+Update youtube-dl core to 2014.11.04
 Removed default entries from _BLACKLIST
 Added overrideParam() method
 Added generateBlacklist() method
-Update youtube-dl core to 2014.11.04
+Added busy dialog to getVideoInfo()
 
 *** 14.1026.0 ***
 
