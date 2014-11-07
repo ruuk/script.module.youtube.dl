@@ -22,13 +22,15 @@ import traceback
 if os.name == 'nt':
     import ctypes
 
-from .utils import (
+from .compat import (
     compat_cookiejar,
     compat_expanduser,
     compat_http_client,
     compat_str,
     compat_urllib_error,
     compat_urllib_request,
+)
+from .utils import (
     escape_url,
     ContentTooShortError,
     date_from_str,
@@ -62,6 +64,7 @@ from .utils import (
 from .cache import Cache
 from .extractor import get_info_extractor, gen_extractors
 from .downloader import get_suitable_downloader
+from .downloader.rtmp import rtmpdump_version
 from .postprocessor import FFmpegMergerPP, FFmpegPostProcessor
 from .version import __version__
 
@@ -189,7 +192,7 @@ class YoutubeDL(object):
     _num_downloads = None
     _screen_file = None
 
-    def __init__(self, params=None):
+    def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options."""
         if params is None:
             params = {}
@@ -245,6 +248,10 @@ class YoutubeDL(object):
             self.report_warning('%(stitle)s is deprecated. Use the %(title)s and the --restrict-filenames flag(which also secures %(uploader)s et al) instead.')
 
         self._setup_opener()
+
+        if auto_init:
+            self.print_debug_header()
+            self.add_default_info_extractors()
 
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
@@ -1207,6 +1214,8 @@ class YoutubeDL(object):
             res += 'video@'
         if fdict.get('vbr') is not None:
             res += '%4dk' % fdict['vbr']
+        if fdict.get('fps') is not None:
+            res += ', %sfps' % fdict['fps']
         if fdict.get('acodec') is not None:
             if res:
                 res += ', '
@@ -1315,6 +1324,7 @@ class YoutubeDL(object):
             platform.python_version(), platform_name()))
 
         exe_versions = FFmpegPostProcessor.get_versions()
+        exe_versions['rtmpdump'] = rtmpdump_version()
         exe_str = ', '.join(
             '%s %s' % (exe, v)
             for exe, v in sorted(exe_versions.items())

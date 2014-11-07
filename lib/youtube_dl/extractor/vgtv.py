@@ -17,7 +17,7 @@ class VGTVIE(InfoExtractor):
             'info_dict': {
                 'id': '84196',
                 'ext': 'mp4',
-                'title': 'Hevnen er søt episode 10: Abu',
+                'title': 'Hevnen er søt episode 1:10 - Abu',
                 'description': 'md5:e25e4badb5f544b04341e14abdc72234',
                 'thumbnail': 're:^https?://.*\.jpg',
                 'duration': 648.000,
@@ -67,9 +67,7 @@ class VGTVIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        video_id = mobj.group('id')
-
+        video_id = self._match_id(url)
         data = self._download_json(
             'http://svp.vg.no/svp/api/v1/vgtv/assets/%s?appName=vgtv-website' % video_id,
             video_id, 'Downloading media JSON')

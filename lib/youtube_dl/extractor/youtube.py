@@ -185,8 +185,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         self._download_webpage(
             req, None,
-            note='Confirming age', errnote='Unable to confirm age')
-        return True
+            note='Confirming age', errnote='Unable to confirm age',
+            fatal=False)
 
     def _real_initialize(self):
         if self._downloader is None:
@@ -274,6 +274,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
         '138': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '160': {'ext': 'mp4', 'height': 144, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '264': {'ext': 'mp4', 'height': 1440, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
+        '298': {'ext': 'mp4', 'height': 720, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40, 'fps': 60, 'vcodec': 'h264'},
+        '299': {'ext': 'mp4', 'height': 1080, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40, 'fps': 60, 'vcodec': 'h264'},
+        '266': {'ext': 'mp4', 'height': 2160, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40, 'vcodec': 'h264'},
 
         # Dash mp4 audio
         '139': {'ext': 'm4a', 'format_note': 'DASH audio', 'vcodec': 'none', 'abr': 48, 'preference': -50},
@@ -297,6 +300,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
         '248': {'ext': 'webm', 'height': 1080, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '271': {'ext': 'webm', 'height': 1440, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
         '272': {'ext': 'webm', 'height': 2160, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40},
+        '302': {'ext': 'webm', 'height': 720, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40, 'fps': 60, 'vcodec': 'VP9'},
+        '303': {'ext': 'webm', 'height': 1080, 'format_note': 'DASH video', 'acodec': 'none', 'preference': -40, 'fps': 60, 'vcodec': 'VP9'},
 
         # Dash webm audio
         '171': {'ext': 'webm', 'vcodec': 'none', 'format_note': 'DASH audio', 'abr': 128, 'preference': -50},
@@ -679,7 +684,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
         # Get video info
         self.report_video_info_webpage_download(video_id)
         if re.search(r'player-age-gate-content">', video_webpage) is not None:
-            self.report_age_confirmation()
             age_gate = True
             # We simulate the access to the video from www.youtube.com/v/{video_id}
             # this can be viewed without login into Youtube
@@ -687,12 +691,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor, SubtitlesInfoExtractor):
                 'video_id': video_id,
                 'eurl': 'https://youtube.googleapis.com/v/' + video_id,
                 'sts': self._search_regex(
-                    r'"sts"\s*:\s*(\d+)', video_webpage, 'sts'),
+                    r'"sts"\s*:\s*(\d+)', video_webpage, 'sts', default=''),
             })
             video_info_url = proto + '://www.youtube.com/get_video_info?' + data
-            video_info_webpage = self._download_webpage(video_info_url, video_id,
-                                    note=False,
-                                    errnote='unable to download video info webpage')
+            video_info_webpage = self._download_webpage(
+                video_info_url, video_id,
+                note='Refetching age-gated info webpage',
+                errnote='unable to download video info webpage')
             video_info = compat_parse_qs(video_info_webpage)
         else:
             age_gate = False
@@ -1057,7 +1062,7 @@ class YoutubePlaylistIE(YoutubeBaseInfoExtractor):
         'note': 'issue #673',
         'url': 'PLBB231211A4F62143',
         'info_dict': {
-            'title': 'Team Fortress 2 (Class-based LP)',
+            'title': '[OLD]Team Fortress 2 (Class-based LP)',
         },
         'playlist_mincount': 26,
     }, {

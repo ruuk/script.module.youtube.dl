@@ -12,13 +12,14 @@ import sys
 import time
 import xml.etree.ElementTree
 
-from ..utils import (
+from ..compat import (
     compat_http_client,
     compat_urllib_error,
     compat_urllib_parse_urlparse,
     compat_urlparse,
     compat_str,
-
+)
+from ..utils import (
     clean_html,
     compiled_regex_type,
     ExtractorError,
@@ -72,6 +73,7 @@ class InfoExtractor(object):
                     * acodec     Name of the audio codec in use
                     * asr        Audio sampling rate in Hertz
                     * vbr        Average video bitrate in KBit/s
+                    * fps        Frame rate
                     * vcodec     Name of the video codec in use
                     * container  Name of the container format
                     * filesize   The number of bytes, if known in advance
@@ -402,7 +404,7 @@ class InfoExtractor(object):
             video_info['title'] = playlist_title
         return video_info
 
-    def _search_regex(self, pattern, string, name, default=_NO_DEFAULT, fatal=True, flags=0):
+    def _search_regex(self, pattern, string, name, default=_NO_DEFAULT, fatal=True, flags=0, group=None):
         """
         Perform a regex search on the given string, using a single or a list of
         patterns returning the first matching group.
@@ -423,8 +425,11 @@ class InfoExtractor(object):
             _name = name
 
         if mobj:
-            # return the first matching group
-            return next(g for g in mobj.groups() if g is not None)
+            if group is None:
+                # return the first matching group
+                return next(g for g in mobj.groups() if g is not None)
+            else:
+                return mobj.group(group)
         elif default is not _NO_DEFAULT:
             return default
         elif fatal:
@@ -434,11 +439,11 @@ class InfoExtractor(object):
                 'please report this issue on http://yt-dl.org/bug' % _name)
             return None
 
-    def _html_search_regex(self, pattern, string, name, default=_NO_DEFAULT, fatal=True, flags=0):
+    def _html_search_regex(self, pattern, string, name, default=_NO_DEFAULT, fatal=True, flags=0, group=None):
         """
         Like _search_regex, but strips HTML tags and unescapes entities.
         """
-        res = self._search_regex(pattern, string, name, default, fatal, flags)
+        res = self._search_regex(pattern, string, name, default, fatal, flags, group)
         if res:
             return clean_html(res).strip()
         else:
@@ -532,9 +537,9 @@ class InfoExtractor(object):
             display_name = name
         return self._html_search_regex(
             r'''(?ix)<meta
-                    (?=[^>]+(?:itemprop|name|property)=["\']?%s["\']?)
-                    [^>]+content=["\']([^"\']+)["\']''' % re.escape(name),
-            html, display_name, fatal=fatal, **kwargs)
+                    (?=[^>]+(?:itemprop|name|property)=(["\']?)%s\1)
+                    [^>]+content=(["\'])(?P<content>.*?)\1''' % re.escape(name),
+            html, display_name, fatal=fatal, group='content', **kwargs)
 
     def _dc_search_uploader(self, html):
         return self._html_search_meta('dc.creator', html, 'uploader')
@@ -618,6 +623,7 @@ class InfoExtractor(object):
                 f.get('vbr') if f.get('vbr') is not None else -1,
                 f.get('abr') if f.get('abr') is not None else -1,
                 audio_ext_preference,
+                f.get('fps') if f.get('fps') is not None else -1,
                 f.get('filesize') if f.get('filesize') is not None else -1,
                 f.get('filesize_approx') if f.get('filesize_approx') is not None else -1,
                 f.get('source_preference') if f.get('source_preference') is not None else -1,
@@ -689,7 +695,10 @@ class InfoExtractor(object):
             if re.match(r'^https?://', u)
             else compat_urlparse.urljoin(m3u8_url, u))
 
-        m3u8_doc = self._download_webpage(m3u8_url, video_id)
+        m3u8_doc = self._download_webpage(
+            m3u8_url, video_id,
+            note='Downloading m3u8 information',
+            errnote='Failed to download m3u8 information')
         last_info = None
         kv_rex = re.compile(
             r'(?P<key>[a-zA-Z_-]+)=(?P<val>"[^"]+"|[^",]+)(?:,|$)')

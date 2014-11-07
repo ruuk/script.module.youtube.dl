@@ -1,5 +1,4 @@
 import os
-import re
 import subprocess
 import sys
 import time
@@ -7,11 +6,13 @@ import time
 
 from .common import AudioConversionError, PostProcessor
 
-from ..utils import (
-    check_executable,
+from ..compat import (
     compat_subprocess_get_DEVNULL,
+)
+from ..utils import (
     encodeArgument,
     encodeFilename,
+    get_exe_version,
     is_outdated_version,
     PostProcessingError,
     prepend_extension,
@@ -20,29 +21,12 @@ from ..utils import (
 )
 
 
-def get_version(executable):
-    """ Returns the version of the specified executable,
-    or False if the executable is not present """
-    try:
-        out, err = subprocess.Popen(
-            [executable, '-version'],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-    except OSError:
-        return False
-    firstline = out.partition(b'\n')[0].decode('ascii', 'ignore')
-    m = re.search(r'version\s+([0-9._-a-zA-Z]+)', firstline)
-    if not m:
-        return u'present'
-    else:
-        return m.group(1)
-
-
 class FFmpegPostProcessorError(PostProcessingError):
     pass
 
 
 class FFmpegPostProcessor(PostProcessor):
-    def __init__(self, downloader, deletetempfiles=False):
+    def __init__(self, downloader=None, deletetempfiles=False):
         PostProcessor.__init__(self, downloader)
         self._versions = self.get_versions()
         self._deletetempfiles = deletetempfiles
@@ -56,12 +40,13 @@ class FFmpegPostProcessor(PostProcessor):
                 self._versions[self._executable], REQUIRED_VERSION):
             warning = u'Your copy of %s is outdated, update %s to version %s or newer if you encounter any errors.' % (
                 self._executable, self._executable, REQUIRED_VERSION)
-            self._downloader.report_warning(warning)
+            if self._downloader:
+                self._downloader.report_warning(warning)
 
     @staticmethod
     def get_versions():
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
-        return dict((program, get_version(program)) for program in programs)
+        return dict((p, get_exe_version(p, args=['-version'])) for p in programs)
 
     @property
     def _executable(self):
@@ -69,6 +54,17 @@ class FFmpegPostProcessor(PostProcessor):
             prefs = ('ffmpeg', 'avconv')
         else:
             prefs = ('avconv', 'ffmpeg')
+        for p in prefs:
+            if self._versions[p]:
+                return p
+        return None
+
+    @property
+    def _probe_executable(self):
+        if self._downloader.params.get('prefer_ffmpeg', False):
+            prefs = ('ffprobe', 'avprobe')
+        else:
+            prefs = ('avprobe', 'ffprobe')
         for p in prefs:
             if self._versions[p]:
                 return p
@@ -119,11 +115,12 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         self._nopostoverwrites = nopostoverwrites
 
     def get_audio_codec(self, path):
-        if not self._exes['ffprobe'] and not self._exes['avprobe']:
+
+        if not self._probe_executable:
             raise PostProcessingError(u'ffprobe or avprobe not found. Please install one.')
         try:
             cmd = [
-                self._exes['avprobe'] or self._exes['ffprobe'],
+                self._probe_executable,
                 '-show_streams',
                 encodeFilename(self._ffmpeg_filename_argument(path), True)]
             handle = subprocess.Popen(cmd, stderr=compat_subprocess_get_DEVNULL(), stdout=subprocess.PIPE)

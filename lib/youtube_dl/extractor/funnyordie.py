@@ -8,7 +8,7 @@ from ..utils import ExtractorError
 
 
 class FunnyOrDieIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funnyordie\.com/(?P<type>embed|videos)/(?P<id>[0-9a-f]+)(?:$|[?#/])'
+    _VALID_URL = r'https?://(?:www\.)?funnyordie\.com/(?P<type>embed|articles|videos)/(?P<id>[0-9a-f]+)(?:$|[?#/])'
     _TESTS = [{
         'url': 'http://www.funnyordie.com/videos/0732f586d7/heart-shaped-box-literal-video-version',
         'md5': 'bcd81e0c4f26189ee09be362ad6e6ba9',
@@ -29,6 +29,9 @@ class FunnyOrDieIE(InfoExtractor):
             'description': 'Please use this to sell something.  www.jonlajoie.com',
             'thumbnail': 're:^http:.*\.jpg$',
         },
+    }, {
+        'url': 'http://www.funnyordie.com/articles/ebf5e34fc8/10-hours-of-walking-in-nyc-as-a-man',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

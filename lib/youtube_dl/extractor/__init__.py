@@ -67,7 +67,6 @@ from .crunchyroll import (
     CrunchyrollShowPlaylistIE
 )
 from .cspan import CSpanIE
-from .d8 import D8IE
 from .dailymotion import (
     DailymotionIE,
     DailymotionPlaylistIE,
@@ -189,6 +188,7 @@ from .kontrtube import KontrTubeIE
 from .krasview import KrasViewIE
 from .ku6 import Ku6IE
 from .la7 import LA7IE
+from .laola1tv import Laola1TvIE
 from .lifenews import LifeNewsIE
 from .liveleak import LiveLeakIE
 from .livestream import (
@@ -251,7 +251,7 @@ from .newstube import NewstubeIE
 from .nfb import NFBIE
 from .nfl import NFLIE
 from .nhl import NHLIE, NHLVideocenterIE
-from .niconico import NiconicoIE
+from .niconico import NiconicoIE, NiconicoPlaylistIE
 from .ninegag import NineGagIE
 from .noco import NocoIE
 from .normalboots import NormalbootsIE
@@ -280,6 +280,7 @@ from .orf import (
 from .parliamentliveuk import ParliamentLiveUKIE
 from .patreon import PatreonIE
 from .pbs import PBSIE
+from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
 from .planetaplay import PlanetaPlayIE
 from .played import PlayedIE
@@ -293,6 +294,7 @@ from .pornoxo import PornoXOIE
 from .promptfile import PromptFileIE
 from .prosiebensat1 import ProSiebenSat1IE
 from .pyvideo import PyvideoIE
+from .quickvid import QuickVidIE
 from .radiofrance import RadioFranceIE
 from .rai import RaiIE
 from .rbmaradio import RBMARadioIE
@@ -355,6 +357,7 @@ from .spike import SpikeIE
 from .sport5 import Sport5IE
 from .sportbox import SportBoxIE
 from .sportdeutschland import SportDeutschlandIE
+from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .steam import SteamIE
 from .streamcloud import StreamcloudIE

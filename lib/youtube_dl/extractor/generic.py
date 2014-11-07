@@ -7,11 +7,12 @@ import re
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import (
+from ..compat import (
     compat_urllib_parse,
     compat_urlparse,
     compat_xml_parse_error,
-
+)
+from ..utils import (
     determine_ext,
     ExtractorError,
     float_or_none,
@@ -97,6 +98,20 @@ class GenericIE(InfoExtractor):
                 'title': 'Видео. Удаление Дзагоева (ЦСКА)',
                 'description': 'Онлайн-трансляция матча ЦСКА - "Волга"',
                 'uploader': 'Championat',
+            },
+        },
+        {
+            'add_ie': ['Brightcove'],
+            'url': 'http://www.kijk.nl/sbs6/leermijvrouwenkennen/videos/jqMiXKAYan2S/aflevering-1',
+            'info_dict': {
+                'id': '3866516442001',
+                'ext': 'flv',
+                'title': 'Leer mij vrouwen kennen: Aflevering 1',
+                'description': 'Leer mij vrouwen kennen: Aflevering 1',
+                'uploader': 'SBS Broadcasting',
+            },
+            'params': {
+                'skip_download': True,
             },
         },
         # Direct link to a video
@@ -325,7 +340,7 @@ class GenericIE(InfoExtractor):
                 'ext': 'mp4',
                 'age_limit': 18,
                 'uploader': 'www.handjobhub.com',
-                'title': 'Busty Blonde Siri Tit Fuck While Wank at Handjob Hub',
+                'title': 'Busty Blonde Siri Tit Fuck While Wank at HandjobHub.com',
             }
         },
         # RSS feed
@@ -389,8 +404,35 @@ class GenericIE(InfoExtractor):
                 'title': 'Conversation about Hexagonal Rails Part 1 - ThoughtWorks',
                 'duration': 1715.0,
                 'uploader': 'thoughtworks.wistia.com',
-            },   
+            },
         },
+        # Direct download with broken HEAD
+        {
+            'url': 'http://ai-radio.org:8000/radio.opus',
+            'info_dict': {
+                'id': 'radio',
+                'ext': 'opus',
+                'title': 'radio',
+            },
+            'params': {
+                'skip_download': True,  # infinite live stream
+            },
+            'expected_warnings': [
+                r'501.*Not Implemented'
+            ],
+        },
+        # Soundcloud embed
+        {
+            'url': 'http://nakedsecurity.sophos.com/2014/10/29/sscc-171-are-you-sure-that-1234-is-a-bad-password-podcast/',
+            'info_dict': {
+                'id': '174391317',
+                'ext': 'mp3',
+                'description': 'md5:ff867d6b555488ad3c52572bb33d432c',
+                'uploader': 'Sophos Security',
+                'title': 'Chet Chat 171 - Oct 29, 2014',
+                'upload_date': '20141029',
+            }
+        }
     ]
 
     def report_following_redirect(self, new_url):
@@ -544,7 +586,7 @@ class GenericIE(InfoExtractor):
             self._downloader.report_warning('Falling back on generic information extractor.')
 
         if full_response:
-            webpage = _webpage_read_content(url, video_id)
+            webpage = self._webpage_read_content(full_response, url, video_id)
         else:
             webpage = self._download_webpage(url, video_id)
         self.report_extraction(video_id)
@@ -823,7 +865,7 @@ class GenericIE(InfoExtractor):
 
         # Look for embeded soundcloud player
         mobj = re.search(
-            r'<iframe src="(?P<url>https?://(?:w\.)?soundcloud\.com/player[^"]+)"',
+            r'<iframe\s+(?:[a-zA-Z0-9_-]+="[^"]+"\s+)*src="(?P<url>https?://(?:w\.)?soundcloud\.com/player[^"]+)"',
             webpage)
         if mobj is not None:
             url = unescapeHTML(mobj.group('url'))
@@ -860,7 +902,7 @@ class GenericIE(InfoExtractor):
             return self.url_result(mobj.group('url'), 'SBS')
 
         mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://m\.mlb\.com/shared/video/embed/embed\.html\?.+?)\1',
+            r'<iframe[^>]+?src=(["\'])(?P<url>https?://m(?:lb)?\.mlb\.com/shared/video/embed/embed\.html\?.+?)\1',
             webpage)
         if mobj is not None:
             return self.url_result(mobj.group('url'), 'MLB')
@@ -918,7 +960,7 @@ class GenericIE(InfoExtractor):
                 found = filter_video(re.findall(r'<meta.*?property="og:video".*?content="(.*?)"', webpage))
         if not found:
             # HTML5 video
-            found = re.findall(r'(?s)<video[^<]*(?:>.*?<source[^>]+)? src="([^"]+)"', webpage)
+            found = re.findall(r'(?s)<video[^<]*(?:>.*?<source[^>]*)?\s+src="([^"]+)"', webpage)
         if not found:
             found = re.search(
                 r'(?i)<meta\s+(?=(?:[a-z-]+="[^"]+"\s+)*http-equiv="refresh")'
