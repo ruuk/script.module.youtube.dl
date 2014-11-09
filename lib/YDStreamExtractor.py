@@ -4,7 +4,7 @@ import YDStreamUtils as StreamUtils
 from youtube_dl.utils import (
     std_headers,
 )
-import util
+from yd_private_libs import util
 
 DEBUG = False
 
