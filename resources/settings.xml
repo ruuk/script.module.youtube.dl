@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-  <category>
-    <setting type="lsep" label=""/>
+  <category label="General">
+    <setting id="use_update_version" type="bool" label="Use user updated youtube-dl core version" default="true" />
+    <setting id="auto_update" type="bool" label="Update automatically" subsetting="true" default="true" enable="eq(-1,true)" />
+    <setting id="update_action" label="Update now" subsetting="true" type="action" action="RunScript(script.module.youtube.dl,UPDATE)" enable="eq(-2,true)" />
+    <setting id="view_info_action" label="youtube-dl core info" type="action" action="RunScript(script.module.youtube.dl,INFO)" />
   </category>
 </settings>

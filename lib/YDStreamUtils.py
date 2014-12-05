@@ -8,10 +8,14 @@ if not os.path.exists(TMP_PATH): os.makedirs(TMP_PATH)
 ###############################################################################
 # Dialogs
 ###############################################################################
-def showMessage(heading,line1,line2=None,line3=None):
-    xbmcgui.Dialog().ok(heading,line1,line2,line3)
-    
-class xbmcDialogProgress:
+def showMessage(heading,line1,line2=None,line3=None,bg=False):
+    if bg:
+        icon = xbmcaddon.Addon('script.module.youtube.dl').getAddonInfo('icon')
+        xbmcgui.Dialog().notification(heading,line1,icon=icon)
+    else:
+        xbmcgui.Dialog().ok(heading,line1,line2,line3)
+
+class xbmcDialogProgressBase:
     def __init__(self,heading,line1='',line2='',line3='',update_callback=None):
         self.heading = heading
         self.line1 = line1
@@ -19,14 +23,17 @@ class xbmcDialogProgress:
         self.line3 = line3
         self._updateCallback = update_callback
         self.lastPercent = 0
+        self.closed = False
         self.setRange()
-        self.dialog = xbmcgui.DialogProgress()
-    
+        self.initDialog()
+
+    def initDialog(self): assert False, 'Not Implemented'
+
     def __enter__(self):
         self.create(self.heading,self.line1,self.line2,self.line3)
         self.update(0,self.line1,self.line2,self.line3)
         return self
-    
+
     def __exit__(self,etype, evalue, traceback):
         self.close()
 
@@ -34,42 +41,87 @@ class xbmcDialogProgress:
         self.start = start
         self.end = end
         self.range = end - start
-        
+
     def recalculatePercent(self,pct):
         #print '%s - %s %s %s' % (pct,self.start,self.range,self.start + int((pct/100.0) * self.range))
         return self.start + int((pct/100.0) * self.range)
 
     def create(self,heading,line1='',line2='',line3=''):
         self.dialog.create(heading,line1,line2,line3)
-        
+
     def update(self,pct,line1='',line2='',line3=''):
-        if self.dialog.iscanceled():
+        if self._iscanceled():
             return False
         pct = self.recalculatePercent(pct)
         if pct < self.lastPercent: pct = self.lastPercent
         self.lastPercent = pct
-        self.dialog.update(pct,line1,line2,line3)
+        self._update(pct,line1,line2,line3)
         return True
-    
+
+    def _update(self,pct,line1,line2,line3): assert False, 'Not Implemented'
+
     def updateSimple(self,message):
         pct = 0
         if hasattr(message,'percent'): pct = message.percent
         return self.update(pct,message)
-        
+
     def updateCallback(self,a):
         if self._updateCallback: return self._updateCallback(self,a)
         return True
-        
+
     def iscanceled(self):
         return self.dialog.iscanceled()
-    
+
+    def _iscanceled(self):
+        return self.dialog.iscanceled()
+
     def close(self):
+        self.closed = True
         self.dialog.close()
-        
+
+class xbmcDialogProgress(xbmcDialogProgressBase):
+    def initDialog(self):
+        self.dialog = xbmcgui.DialogProgress()
+
+    def _update(self,pct,line1,line2,line3):
+        self.dialog.update(pct,line1,line2,line3)
+
+class xbmcDialogProgressBG(xbmcDialogProgressBase):
+    def _condenseLines(self,line1,line2,line3):
+        lines = []
+        for line in (line1,line2,line3):
+            if line: lines.append(line)
+        return ' | '.join(lines)
+
+    def initDialog(self):
+        self.dialog = xbmcgui.DialogProgressBG()
+
+    def create(self,heading,line1='',line2='',line3=''):
+        self.dialog.create(heading,self._condenseLines(line1,line2,line3))
+
+    def _update(self,pct,line1,line2,line3):
+        self.dialog.update(pct,self._condenseLines(line1,line2,line3))
+
+    def isFinished(self):
+        return self.dialog.isFinished()
+
+    def iscanceled(self):
+        return self.closed
+
+    def _iscanceled(self):
+        return self.closed
+
 class DownloadProgress(xbmcDialogProgress):
     def __init__(self,heading=T(32004)):
         xbmcDialogProgress.__init__(self,heading,update_callback=downloadProgressCallback)
-        
+
+    def __call__(self,info):
+        return self._updateCallback(self,info)
+
+class DownloadProgressBG(xbmcDialogProgressBG):
+    def __init__(self,heading=T(32004)):
+        xbmcDialogProgressBG.__init__(self,heading,update_callback=downloadProgressCallbackBG)
+
     def __call__(self,info):
         return self._updateCallback(self,info)
 
@@ -86,7 +138,19 @@ def downloadProgressCallback(prog,data):
     if downloaded: line3.append('{0}: {1}'.format(T(32003),simpleSize(downloaded)))
     line3 = ' - '.join(line3)
     return prog.update(data.percent or 0,line1,line2,line3)
-    
+
+def downloadProgressCallbackBG(prog,data):
+    line1 = os.path.basename(data.info.get('filename',''))[:20]
+    line2 = []
+    if data.speedStr: line2.append(data.speedStr)
+    if data.etaStr: line2.append('{0}: {1}'.format(T(32001),data.etaStr))
+    line2 = ' - '.join(line2)
+    line3 = ''
+    downloaded = data.info.get('downloaded_bytes')
+    if downloaded:
+        line3 = '({0}/{1})'.format(simpleSize(downloaded),simpleSize(data.info.get('total_bytes',0)))
+    return prog.update(data.percent or 0,line1,line2,line3)
+
 ###############################################################################
 # Functions
 ###############################################################################
@@ -96,12 +160,11 @@ def moveFile(file_path,dest_path):
     xbmcvfs.copy(file_path,destFilePath)
     xbmcvfs.delete(file_path)
 
-def getDownloadPath():
+def getDownloadPath(use_default=False):
     addon = xbmcaddon.Addon('script.module.youtube.dl')
-    useDefault = False
     path = addon.getSetting('last_download_path') or ''
     if path:
-        if not useDefault:
+        if not use_default:
             new = xbmcgui.Dialog().yesno(T(32005),T(32006),path,T(32007),T(32008),T(32009))
             if new: path = ''
     if not path: path = xbmcgui.Dialog().browse(3,T(32010),'files','',False,True)
@@ -140,9 +203,9 @@ def durationToShortText(seconds):
     sec = int(left % 60)
     if sec: return '%ss' % sec
     return '0s'
-    
+
 ###############################################################################
-# xbmc player functions                    
+# xbmc player functions
 ###############################################################################
 def play(path,preview=False):
     """
@@ -150,19 +213,19 @@ def play(path,preview=False):
     If preview is True plays in current skins preview or background.
     """
     xbmc.executebuiltin('PlayMedia(%s,,%s)' % (path,preview and 1 or 0))
-    
+
 def pause():
     """
     Pauses currently playing video.
     """
     if isPlaying(): control('play')
-    
+
 def resume():
     """
     Un-pauses currently paused video.
     """
     if not isPlaying(): control('play')
-    
+
 def current():
     """
     Returns the currently playing file.
@@ -180,7 +243,7 @@ def isPlaying():
     Returns True if the player is playing video.
     """
     return xbmc.getCondVisibility('Player.Playing') and xbmc.getCondVisibility('Player.HasVideo')
-    
+
 def playAt(path,h=0,m=0,s=0,ms=0):
     """
     Plays the video specified by path.
