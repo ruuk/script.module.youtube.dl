@@ -4,7 +4,8 @@ import os, sys, traceback, binascii
 
 ADDON = xbmcaddon.Addon(id='script.module.youtube.dl')
 
-QUEUE_FILE = os.path.join(xbmc.translatePath(xbmcaddon.Addon('script.module.youtube.dl').getAddonInfo('profile')),'queue')
+QUEUE_FILE = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'queue')
+MODULE_PATH = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('path')).decode('utf-8'),'lib')
 
 DEBUG = False
 

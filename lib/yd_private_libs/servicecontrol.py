@@ -27,12 +27,13 @@ class ServiceControl(object):
             args[k] = safeDecode(v)
         return args
 
-    def download(self,path,vidinfo):
+    def download(self,info,path,duration):
         addonPath = xbmc.translatePath(util.ADDON.getAddonInfo('path')).decode('utf-8')
         service = os.path.join(addonPath,'service.py')
-        data = {'path':path,'data':vidinfo.selectedStream()['ytdl_format']}
+        data = {'data':info,'path':path,'duration':duration}
         dataJSON = json.dumps(data)
-        xbmc.executebuiltin('RunScript({0},{1})'.format(service,binascii.hexlify(dataJSON)))
+        jsonqueue.XBMCJsonRAFifoQueue(util.QUEUE_FILE).push(binascii.hexlify(dataJSON))
+        xbmc.executebuiltin('RunScript({0})'.format(service))
 
     def stopDownload(self):
         self.sendCommand('DOWNLOAD_STOP')

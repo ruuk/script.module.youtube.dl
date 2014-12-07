@@ -1,4 +1,4 @@
-import urllib, os, urlparse, httplib
+import urllib, os, urlparse, httplib, time
 import xbmc
 
 import YoutubeDLWrapper
@@ -143,22 +143,115 @@ def _getYoutubeDLVideo(url,quality=1,resolve_redirects=False):
     info.info = r
     return info
 
-def _handleDownload(path,vidinfo,bg):
+def _convertInfo(info):
+    import xbmcgui
+    #If we have a VidInfo object or ListItem exctract or create info
+    if isinstance(info,YoutubeDLWrapper.VideoInfo):
+        info = info.selectedStream()['ytdl_format']
+        if 'formats' in info: del info['formats'] #Remove possible circular reference
+        info['media_type'] = 'video'
+    elif isinstance(info,xbmcgui.ListItem):
+        info = _infoFromListItem(info)
+    return info
+
+def _completeInfo(info):
+    if not 'ext' in info: info['ext'] = _getExtension(info)
+    if not 'title' in info: info['title'] = 'Unknown'
+
+def _getExtension(info):
+    url = info['url']
+    initialURLExt = url.rsplit('.',1)[-1]
+    resolvedURLExt = None
+    contentTypeExt = None
+    try:
+        url = resolve_http_redirect(url)
+        o = urlparse.urlparse(url,allow_fragments=True)
+        conn = httplib.HTTPConnection(o.netloc)
+        conn.request("HEAD", o.path, headers={'User-Agent':YoutubeDLWrapper.std_headers['User-Agent']})
+        res = conn.getresponse()
+
+        headers = dict(res.getheaders())
+
+        contentDisposition = headers.get('content-disposition')
+        if contentDisposition:
+            n,e = os.path.splitext(contentDisposition)
+            if e: return e.strip('.') #If we get this we're lucky
+        else:
+            n,e = os.path.splitext(url) #Check the resolved url
+            resolvedURLExt = e.strip('.')
+
+        contentType = headers['content-type']
+        import mimetypes
+        ext = mimetypes.guess_extension(contentType)
+        if ext: contentTypeExt = ext.strip('.') #This is probabaly wrong
+    except:
+        util.ERROR(hide_tb=True)
+
+    extensions = [ex for ex in (resolvedURLExt, initialURLExt, contentTypeExt) if ex]
+    if 'media_type' in info:
+        for ext in extensions:
+            return _validateExtension(ext,info)
+    else:
+        for ext in extensions:
+            if _isValidMediaExtension(ext): return ext
+
+    for ext in extensions: return ext
+
+    return 'mp4'
+
+def _validateExtension(ext,info):
+    #use Kodi's supported media to check for valid extension or return default
+    if info.get('media_type') == 'video':
+        if not ext in xbmc.getSupportedMedia('video'): return 'mp4'
+    elif info.get('media_type') == 'audio':
+        if not ext in xbmc.getSupportedMedia('music'): return 'mp3'
+    elif info.get('media_type') == 'image':
+        if not ext in xbmc.getSupportedMedia('picture'): return 'jpg'
+    return ext
+
+def _isValidMediaExtension(ext):
+    #use Kodi's supported media to check for valid extension
+    if ext in xbmc.getSupportedMedia('video'): return True
+    if ext in xbmc.getSupportedMedia('music'): return True
+    if ext in xbmc.getSupportedMedia('picture'): return True
+    return False
+
+def _infoFromListItem(listitem):
+    url = listitem.getfilename()
+    title = listitem.getProperty('title') or listitem.getLabel()
+    description = listitem.getdescription() or listitem.getLabel2()
+    thumbnail = listitem.getProperty('iconImage') or listitem.getProperty('thumbnailImage') or '' #Not sure if this works
+
+    return {'url':url,'title':title,'description':description,'thumbnail':thumbnail}
+
+def _setDownloadDuration(duration=None):
+    if duration:
+        YoutubeDLWrapper._DOWNLOAD_START = time.time()
+        YoutubeDLWrapper._DOWNLOAD_DURATION = duration
+    else:
+        YoutubeDLWrapper._DOWNLOAD_START = None
+        YoutubeDLWrapper._DOWNLOAD_DURATION = None
+
+def _cancelDownload(_cancel=True):
+    YoutubeDLWrapper._DOWNLOAD_CANCEL = _cancel
+
+def _handleDownload(info,path=None,duration=None,bg=False):
     path = path or StreamUtils.getDownloadPath(use_default=True)
     if bg:
         downloader = StreamUtils.DownloadProgressBG
     else:
         downloader = StreamUtils.DownloadProgress
 
-    with downloader() as prog:
+    with downloader(line1='Starting download...') as prog:
+
         try:
             setOutputCallback(prog.updateCallback)
-            if bg:
-                result = downloadVideo(vidinfo,StreamUtils.TMP_PATH,ytdl_format=vidinfo)
-            else:
-                result = downloadVideo(vidinfo,StreamUtils.TMP_PATH)
+            _setDownloadDuration(duration)
+            result = download(info,StreamUtils.TMP_PATH)
         finally:
             setOutputCallback(None)
+            _setDownloadDuration(duration)
+
     if not result and result.status != 'canceled':
             StreamUtils.showMessage(StreamUtils.T(32013),result.message,bg=bg)
     elif result:
@@ -194,14 +287,30 @@ def getVideoInfo(url,quality=1,resolve_redirects=False):
         return None
     return info
 
-def downloadVideo(vidinfo,path,template='%(title)s-%(id)s.%(ext)s',ytdl_format=None):
+def handleDownload(info,duration=None,bg=False):
+    """
+    Download the selected video in vidinfo to a path the user chooses.
+    Displays a progress dialog and ok/error message when finished.
+    Set bg=True to download in the background.
+    Returns a DownloadResult object for foreground transfers.
+    """
+    info = _convertInfo(info)
+    path = StreamUtils.getDownloadPath()
+    if bg:
+        servicecontrol.ServiceControl().download(info,path,duration)
+    else:
+        return _handleDownload(info,path,False,duration=duration)
+
+def download(info,path,template='%(title)s-%(id)s.%(ext)s'):
     """
     Download the selected video in vidinfo to path.
     Template sets the youtube-dl format which defaults to TITLE-ID.EXT.
     Returns a DownloadResult object.
     """
+    info = _convertInfo(info) #Get the right format
+    _completeInfo(info) #Make sure we have the needed bits
 
-    cancelDownload(_cancel=False)
+    _cancelDownload(_cancel=False)
     path_template = os.path.join(path,template)
     ytdl = YoutubeDLWrapper._getYTDL()
     ytdl._lastDownloadedFilePath = ''
@@ -209,7 +318,7 @@ def downloadVideo(vidinfo,path,template='%(title)s-%(id)s.%(ext)s',ytdl_format=N
     ytdl.params['outtmpl'] = path_template
 
     try:
-        downloadDirect(vidinfo,ytdl_format=ytdl_format)
+        YoutubeDLWrapper.download(info)
     except YoutubeDLWrapper.youtube_dl.DownloadError, e:
         return DownloadResult(False,e.message,filepath=ytdl._lastDownloadedFilePath)
     except YoutubeDLWrapper.DownloadCanceledException:
@@ -218,22 +327,6 @@ def downloadVideo(vidinfo,path,template='%(title)s-%(id)s.%(ext)s',ytdl_format=N
         ytdl.clearDownloadParams()
 
     return DownloadResult(True,filepath=ytdl._lastDownloadedFilePath)
-
-def downloadDirect(vidinfo,ytdl_format=None):
-    ytdl = YoutubeDLWrapper._getYTDL()
-    return ytdl.process_info(ytdl_format or vidinfo.selectedStream()['ytdl_format'])
-
-def handleDownload(vidinfo,bg=False):
-    """
-    Download the selected video in vidinfo to a path the user chooses.
-    Displays a progress dialog and ok/error message when finished.
-    Returns a DownloadResult object.
-    """
-    path = StreamUtils.getDownloadPath()
-    if bg:
-        servicecontrol.ServiceControl().download(path,vidinfo)
-    else:
-        _handleDownload(path,vidinfo,False)
 
 def mightHaveVideo(url,resolve_redirects=False):
     """
@@ -259,9 +352,17 @@ def disableDASHVideo(disable=True):
     YoutubeDLWrapper._DISABLE_DASH_VIDEO = disable
 
 def overrideParam(key,val):
+    """
+    Override a youtube_dl parmeter.
+    """
     YoutubeDLWrapper._OVERRIDE_PARAMS[key] = val
 
 def generateBlacklist(regexs):
+    """
+    Generate a blacklist of extractors based on IE_NAME.
+    regexs is a list or tuple of regular expressions.
+    Extractors that match any of the regular expressions are added.
+    """
     import re
     from youtube_dl.extractor import gen_extractors
     for ie in gen_extractors():
@@ -269,11 +370,14 @@ def generateBlacklist(regexs):
             if re.search(r,ie.IE_NAME):
                 YoutubeDLWrapper._BLACKLIST.append(ie.IE_NAME)
 
-def cancelDownload(_cancel=True):
-    YoutubeDLWrapper._DOWNLOAD_CANCEL = _cancel
-
 def manageDownloads():
+    """
+    Open the download manager.
+    """
     xbmc.executebuiltin('RunScript(script.module.youtube.dl)')
 
 def isDownloading():
+    """
+    Returns true if background download service is handling downloads.
+    """
     return servicecontrol.ServiceControl().isDownloading()

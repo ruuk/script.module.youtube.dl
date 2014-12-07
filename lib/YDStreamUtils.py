@@ -87,20 +87,20 @@ class xbmcDialogProgress(xbmcDialogProgressBase):
         self.dialog.update(pct,line1,line2,line3)
 
 class xbmcDialogProgressBG(xbmcDialogProgressBase):
-    def _condenseLines(self,line1,line2,line3):
+    def _condenseLines(self,line2,line3):
         lines = []
-        for line in (line1,line2,line3):
+        for line in (line2,line3):
             if line: lines.append(line)
-        return ' | '.join(lines)
+        return '  |  '.join(lines)
 
     def initDialog(self):
         self.dialog = xbmcgui.DialogProgressBG()
 
     def create(self,heading,line1='',line2='',line3=''):
-        self.dialog.create(heading,self._condenseLines(line1,line2,line3))
+        self.dialog.create(line1,self._condenseLines(line2,line3))
 
     def _update(self,pct,line1,line2,line3):
-        self.dialog.update(pct,self._condenseLines(line1,line2,line3))
+        self.dialog.update(pct,line1,self._condenseLines(line2,line3))
 
     def isFinished(self):
         return self.dialog.isFinished()
@@ -112,15 +112,15 @@ class xbmcDialogProgressBG(xbmcDialogProgressBase):
         return self.closed
 
 class DownloadProgress(xbmcDialogProgress):
-    def __init__(self,heading=T(32004)):
-        xbmcDialogProgress.__init__(self,heading,update_callback=downloadProgressCallback)
+    def __init__(self,heading=T(32004),line1=''):
+        xbmcDialogProgress.__init__(self,heading,line1=line1,update_callback=downloadProgressCallback)
 
     def __call__(self,info):
         return self._updateCallback(self,info)
 
 class DownloadProgressBG(xbmcDialogProgressBG):
-    def __init__(self,heading=T(32004)):
-        xbmcDialogProgressBG.__init__(self,heading,update_callback=downloadProgressCallbackBG)
+    def __init__(self,heading=T(32004),line1=''):
+        xbmcDialogProgressBG.__init__(self,heading,line1=line1,update_callback=downloadProgressCallbackBG)
 
     def __call__(self,info):
         return self._updateCallback(self,info)
@@ -140,11 +140,12 @@ def downloadProgressCallback(prog,data):
     return prog.update(data.percent or 0,line1,line2,line3)
 
 def downloadProgressCallbackBG(prog,data):
-    line1 = os.path.basename(data.info.get('filename',''))[:20]
+    print repr(data)
+    line1 = os.path.basename(data.info.get('filename',''))
     line2 = []
     if data.speedStr: line2.append(data.speedStr)
     if data.etaStr: line2.append('{0}: {1}'.format(T(32001),data.etaStr))
-    line2 = ' - '.join(line2)
+    line2 = '  -  '.join(line2)
     line3 = ''
     downloaded = data.info.get('downloaded_bytes')
     if downloaded:
@@ -179,9 +180,11 @@ def simpleSize(size):
     Converts bytes to a short user friendly string
     Example: 12345 -> 12.06 KB
     """
-    i = int(math.floor(math.log(size,1024)))
-    p = math.pow(1024,i)
-    s = round(size/p,2)
+    s = 0
+    if size > 0:
+        i = int(math.floor(math.log(size,1024)))
+        p = math.pow(1024,i)
+        s = round(size/p,2)
     if (s > 0):
         return '%s %s' % (s,SIZE_NAMES[i])
     else:

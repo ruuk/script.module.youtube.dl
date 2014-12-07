@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys, json, binascii
 import xbmc
-from lib import YDStreamExtractor
 from lib.yd_private_libs import util, servicecontrol, jsonqueue
+sys.path.insert(0,util.MODULE_PATH)
+import YDStreamExtractor
 import threading
 
 class Service(xbmc.Monitor):
@@ -17,14 +18,7 @@ class Service(xbmc.Monitor):
 
     def processCommand(self,command,args):
         if command == 'DOWNLOAD_STOP':
-            YDStreamExtractor.cancelDownload()
-
-    def queueDownload(self):
-        try:
-            data = sys.argv[-1]
-            jsonqueue.XBMCJsonRAFifoQueue(util.QUEUE_FILE).push(data)
-        except:
-            util.ERROR('Could not get passed data')
+            YDStreamExtractor._cancelDownload()
 
     def getNextQueuedDownload(self):
         try:
@@ -41,8 +35,6 @@ class Service(xbmc.Monitor):
         return None
 
     def start(self):
-        self.queueDownload()
-
         if self.controller.status == 'ACTIVE': return
 
         try:
@@ -56,7 +48,7 @@ class Service(xbmc.Monitor):
         info = self.getNextQueuedDownload()
 
         while info and not xbmc.abortRequested:
-            t = threading.Thread(target=YDStreamExtractor._handleDownload,args=(info['path'],info['data'],True))
+            t = threading.Thread(target=YDStreamExtractor._handleDownload,args=(info['data'],),kwargs={'path':info['path'],'duration':info['duration'],'bg':True})
             t.start()
 
             while t.isAlive() and not xbmc.abortRequested:

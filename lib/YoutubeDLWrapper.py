@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import sys
+import sys, time
 import xbmc
 from yd_private_libs import util, updater
 import YDStreamUtils as StreamUtils
@@ -8,7 +8,6 @@ updater.updateCore()
 
 updater.set_youtube_dl_importPath()
 
-import YDInternalExtractors as extractors
 from youtube_dl.utils import std_headers #analysis:ignore
 
 ###############################################################################
@@ -58,7 +57,8 @@ _CALLBACK = None
 _BLACKLIST = []
 _OVERRIDE_PARAMS = {}
 _DOWNLOAD_CANCEL = False
-
+_DOWNLOAD_START = None
+_DOWNLOAD_DURATION = None
 class VideoInfo:
     """
     Represents resolved site video
@@ -170,6 +170,9 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
         if xbmc.abortRequested or _DOWNLOAD_CANCEL:
             _DOWNLOAD_CANCEL = False
             raise DownloadCanceledException('abortRequested')
+        if _DOWNLOAD_DURATION:
+            if time.time() - _DOWNLOAD_START > _DOWNLOAD_DURATION:
+                raise DownloadCanceledException('duration_reached')
         if not _CALLBACK: return
         #'downloaded_bytes': byte_counter,
         #'total_bytes': data_len,
@@ -183,10 +186,15 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
         if info.get('filename'): self._lastDownloadedFilePath = info.get('filename')
         pct = ''
         pct_val = 0
+        eta = None
         if sofar != None and total:
             pct_val = int((float(sofar)/total) * 100)
             pct = ' (%s%%)' % pct_val
-        eta = info.get('eta') or ''
+        elif _DOWNLOAD_DURATION:
+            sofar = time.time() - _DOWNLOAD_START
+            eta = _DOWNLOAD_DURATION - sofar
+            pct_val = int((float(sofar)/_DOWNLOAD_DURATION) * 100)
+        eta = eta or info.get('eta') or ''
         eta_str = ''
         if eta:
             eta_str = StreamUtils.durationToShortText(eta)
@@ -263,5 +271,14 @@ def _getYTDL():
         _YTDL = YoutubeDLWrapper()
     _YTDL.add_progress_hook(_YTDL.progressCallback)
     _YTDL.add_default_info_extractors()
-    _YTDL.add_info_extractor(extractors.RTMPIE())
     return _YTDL
+
+def download(info):
+    from youtube_dl import downloader
+    ytdl = _getYTDL()
+    name = ytdl.prepare_filename(info)
+    fd = downloader.get_suitable_downloader(info)(ytdl, ytdl.params)
+    for ph in ytdl._progress_hooks:
+        fd.add_progress_hook(ph)
+    return fd.download(name, info)
+
