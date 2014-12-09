@@ -31,22 +31,28 @@ class DownloadResult:
 ###############################################################################
 # Private Methods
 ###############################################################################
-def _selectVideoQuality(r,quality=1):
-        if 'entries' in r and not 'formats' in r:
-            entries = r['entries']
-        elif 'formats' in r and r['formats']:
-            entries = [r]
-        elif 'url' in r:
-            r['formats'] = [r]
-            entries = [r]
-        minHeight = 0
-        maxHeight = 480
-        if quality > 1:
-            minHeight = 721
-            maxHeight = 1080
-        elif quality > 0:
-            minHeight = 481
-            maxHeight = 720
+def _getQualityLimits(quality):
+    minHeight = 0
+    maxHeight = 480
+    if quality > 2:
+        minHeight = 1081
+        maxHeight = 999999
+    elif quality > 1:
+        minHeight = 721
+        maxHeight = 1080
+    elif quality > 0:
+        minHeight = 481
+        maxHeight = 720
+    return minHeight,maxHeight
+
+def _selectVideoQuality(r,quality=None):
+        if quality == None: quality = util.getSetting('video_quality',1)
+        disable_dash = util.getSetting('disable_dash_video',True)
+
+        entries = r.get('entries') or [r]
+
+        minHeight, maxHeight = _getQualityLimits(quality)
+
         util.LOG('Quality: {0}'.format(quality),debug=True)
         urls = []
         idx=0
@@ -57,18 +63,18 @@ def _selectVideoQuality(r,quality=1):
             prefFormat = None
             prefMax = 0
             prefPref = -1000
+
             index = {}
-            if 'formats' in entry:
-                formats = entry['formats']
-            else:
-                formats = [entry]
-            for i in range(0,len(formats)): index[formats[i]['format_id']] = i
+            formats = entry.get('formats') or [entry]
+
+            for i in range(len(formats)): index[formats[i]['format_id']] = i
+
             keys = sorted(index.keys())
             fallback = formats[index[keys[0]]]
             for fmt in keys:
                 fdata = formats[index[fmt]]
                 if not 'height' in fdata: continue
-                if YoutubeDLWrapper._DISABLE_DASH_VIDEO and 'dash' in fdata.get('format_note','').lower(): continue
+                if disable_dash and 'dash' in fdata.get('format_note','').lower(): continue
                 h = fdata['height']
                 p = fdata.get('preference',1)
                 if h >= minHeight and h <= maxHeight:
@@ -122,7 +128,7 @@ def resolve_http_redirect(url, depth=0):
     else:
         return url
 
-def _getYoutubeDLVideo(url,quality=1,resolve_redirects=False):
+def _getYoutubeDLVideo(url,quality=None,resolve_redirects=False):
     if resolve_redirects:
         try:
             url = resolve_http_redirect(url)
@@ -247,7 +253,7 @@ def _handleDownload(info,path=None,duration=None,bg=False):
         try:
             setOutputCallback(prog.updateCallback)
             _setDownloadDuration(duration)
-            result = download(info,StreamUtils.TMP_PATH)
+            result = download(info,util.TMP_PATH)
         finally:
             setOutputCallback(None)
             _setDownloadDuration(duration)
@@ -258,7 +264,7 @@ def _handleDownload(info,path=None,duration=None,bg=False):
         StreamUtils.showMessage(StreamUtils.T(32011),StreamUtils.T(32012),'',result.filepath,bg=bg)
     filePath = result.filepath
     if os.path.exists(result.filepath + '.part'): os.rename(result.filepath + '.part',result.filepath)
-    StreamUtils.moveFile(filePath,path)
+    StreamUtils.moveFile(filePath,path,filename=info.get('filename'))
     return result
 
 ###############################################################################
@@ -274,10 +280,11 @@ def setOutputCallback(callback):
     YoutubeDLWrapper._CALLBACK = callback
 
 @util.busyDialog
-def getVideoInfo(url,quality=1,resolve_redirects=False):
+def getVideoInfo(url,quality=None,resolve_redirects=False):
     """
     Returns a VideoInfo object or None.
-    Quality is 0=SD, 1=720p, 2=1080p and is a maximum.
+    Quality is 0=SD, 1=720p, 2=1080p, 3=Highest Available
+    and represents a maximum.
     """
     try:
         info = _getYoutubeDLVideo(url,quality,resolve_redirects)
@@ -347,9 +354,10 @@ def mightHaveVideo(url,resolve_redirects=False):
 
 def disableDASHVideo(disable=True):
     """
-    True to disable choosing MPEG DASH streams.
+    DEPRECATED: Now handled by module settings
     """
-    YoutubeDLWrapper._DISABLE_DASH_VIDEO = disable
+    import warnings
+    warnings.warn("External use of disableDASHVideo() is deprecated. It is now handled by module settings")
 
 def overrideParam(key,val):
     """

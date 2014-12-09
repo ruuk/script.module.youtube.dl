@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from lib.yd_private_libs import util, servicecontrol, updater
-import xbmcgui
+import xbmc, xbmcgui
 
 class main():
     def __init__(self):
@@ -24,6 +24,10 @@ class main():
                 d.addItem('stop','Stop Current Download')
                 d.addItem('stop_all','Stop All Downloads')
                 d.addItem('manage','Manage Queue')
+            if xbmc.getCondVisibility('Player.HasVideo'):
+                url = xbmc.Player().getPlayingFile()
+                if '://' in url:
+                    d.addItem('download_playing_video','Download Playing Video')
             d.addItem('settings','Settings')
 
             option = d.getResult()
@@ -34,8 +38,36 @@ class main():
                 self.stopAllDownloads()
             elif option == 'manage':
                 self.manageQueue()
+            elif option == 'download_playing_video':
+                self.downloadPlaying()
             elif option == 'settings':
                 self.settings()
+
+    def downloadPlaying(self):
+        title = xbmc.getInfoLabel('Player.Title')
+        url = xbmc.Player().getPlayingFile() #xbmc.getInfoLabel('Player.Filenameandpath')
+        thumbnail = xbmc.getInfoLabel('Player.Art(thumb)')
+        extra = None
+        if '|' in url:
+            url, extra = url.rsplit('|',1)
+            url = url.rstrip('?')
+        import time
+        info = {'url':url,'title':title,'thumbnail':thumbnail,'id':int(time.time()),'media_type':'video'}
+        if extra:
+            try:
+                import urlparse
+                for k,v in urlparse.parse_qsl(extra):
+                    print k,v
+                    if k.lower() == 'user-agent':
+                        info['user_agent'] = v
+                        break
+            except:
+                util.ERROR(hide_tb=True)
+
+        util.LOG(repr(info),debug=True)
+
+        import YDStreamExtractor
+        YDStreamExtractor.handleDownload(info,bg=True)
 
     def stopDownload(self):
         yes = xbmcgui.Dialog().yesno('Cancel Download','Cancel current download?')

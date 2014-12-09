@@ -3,11 +3,15 @@ import xbmc, xbmcgui, xbmcaddon
 import os, sys, traceback, binascii
 
 ADDON = xbmcaddon.Addon(id='script.module.youtube.dl')
+T = ADDON.getLocalizedString
 
+TMP_PATH = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'tmp')
+if not os.path.exists(TMP_PATH): os.makedirs(TMP_PATH)
 QUEUE_FILE = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'queue')
 MODULE_PATH = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('path')).decode('utf-8'),'lib')
 
-DEBUG = False
+
+DEBUG = ADDON.getSetting('debug') == 'true'
 
 def LOG(msg,debug=False):
     if debug and not DEBUG: return

@@ -51,7 +51,7 @@ youtube_dl.utils.date_from_str = _date_from_str_wrap
 ###############################################################################
 
 _YTDL = None
-_DISABLE_DASH_VIDEO = True
+_DISABLE_DASH_VIDEO = util.getSetting('disable_dash_video',True)
 _CALLBACK = None
 #_BLACKLIST = ['youtube:playlist', 'youtube:toplist', 'youtube:channel', 'youtube:user', 'youtube:search', 'youtube:show', 'youtube:favorites', 'youtube:truncated_url','vimeo:channel', 'vimeo:user', 'vimeo:album', 'vimeo:group', 'vimeo:review','dailymotion:playlist', 'dailymotion:user','generic']
 _BLACKLIST = []
@@ -265,7 +265,7 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
 def _getYTDL():
     global _YTDL
     if _YTDL: return _YTDL
-    if util.DEBUG:
+    if util.DEBUG and util.getSetting('ytdl_debug',False):
         _YTDL = YoutubeDLWrapper({'verbose':True})
     else:
         _YTDL = YoutubeDLWrapper()

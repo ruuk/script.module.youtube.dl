@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-import os, math, xbmc, xbmcgui, xbmcaddon, xbmcvfs
+import os, math, xbmc, xbmcgui, xbmcvfs
+from yd_private_libs import util
 
-T = xbmcaddon.Addon('script.module.youtube.dl').getLocalizedString
-TMP_PATH = os.path.join(xbmc.translatePath(xbmcaddon.Addon('script.module.youtube.dl').getAddonInfo('profile')),'tmp')
-if not os.path.exists(TMP_PATH): os.makedirs(TMP_PATH)
+T = util.T
 
 ###############################################################################
 # Dialogs
 ###############################################################################
 def showMessage(heading,line1,line2=None,line3=None,bg=False):
     if bg:
-        icon = xbmcaddon.Addon('script.module.youtube.dl').getAddonInfo('icon')
+        icon = util.ADDON.getAddonInfo('icon')
         xbmcgui.Dialog().notification(heading,line1,icon=icon)
     else:
         xbmcgui.Dialog().ok(heading,line1,line2,line3)
@@ -140,7 +139,6 @@ def downloadProgressCallback(prog,data):
     return prog.update(data.percent or 0,line1,line2,line3)
 
 def downloadProgressCallbackBG(prog,data):
-    print repr(data)
     line1 = os.path.basename(data.info.get('filename',''))
     line2 = []
     if data.speedStr: line2.append(data.speedStr)
@@ -155,22 +153,22 @@ def downloadProgressCallbackBG(prog,data):
 ###############################################################################
 # Functions
 ###############################################################################
-def moveFile(file_path,dest_path):
-    fname = os.path.basename(file_path)
+def moveFile(file_path,dest_path,filename=None):
+    fname = filename or os.path.basename(file_path)
     destFilePath = os.path.join(dest_path,fname)
     xbmcvfs.copy(file_path,destFilePath)
     xbmcvfs.delete(file_path)
 
-def getDownloadPath(use_default=False):
-    addon = xbmcaddon.Addon('script.module.youtube.dl')
-    path = addon.getSetting('last_download_path') or ''
+def getDownloadPath(use_default=None):
+    if use_default == None: use_default = not util.getSetting('confirm_download_path',True)
+    path = util.getSetting('last_download_path','')
     if path:
         if not use_default:
             new = xbmcgui.Dialog().yesno(T(32005),T(32006),path,T(32007),T(32008),T(32009))
             if new: path = ''
     if not path: path = xbmcgui.Dialog().browse(3,T(32010),'files','',False,True)
     if not path: return
-    addon.setSetting('last_download_path',path)
+    util.setSetting('last_download_path',path)
     return path
 
 
@@ -233,7 +231,7 @@ def current():
     """
     Returns the currently playing file.
     """
-    return xbmc.getInfoLabel('Player.Filenameandpath')
+    return xbmc.Player().getPlayingFile()
 
 def control(command):
     """
