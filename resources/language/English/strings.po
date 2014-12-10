@@ -130,5 +130,21 @@ msgid "Download path"
 msgstr ""
 
 msgctxt "#32030"
-msgid ""
+msgid "Stop Current Download"
+msgstr ""
+
+msgctxt "#32031"
+msgid "Stop All Downloads"
+msgstr ""
+
+msgctxt "#32032"
+msgid "Manage Queue"
+msgstr ""
+
+msgctxt "#32033"
+msgid "Download Currently Playing Video"
+msgstr ""
+
+msgctxt "#32034"
+msgid "Settings"
 msgstr ""

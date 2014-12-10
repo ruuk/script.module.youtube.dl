@@ -3,6 +3,43 @@ import sys
 from lib.yd_private_libs import util, servicecontrol, updater
 import xbmc, xbmcgui
 
+class PlayMonitor(xbmc.Player):
+    def onPlayBackStarted(self):
+        self.setVideoValidity()
+
+    def setVideoValidity(self):
+        valid = ''
+        try:
+            if '://' in self.getPlayingFile():
+                valid = 'VIDEO'
+        except RuntimeError: #Not playing a file
+            pass
+
+        xbmcgui.Window(10000).setProperty('script.module.youtube.dl_VALID',valid)
+
+def showOptions(main=None):
+    w = OptionsDialog('script-module-youtube-dl-options_dialog.xml',util.ADDON.getAddonInfo('path'),'main','720p',main=main)
+    w.doModal()
+    del w
+
+class OptionsDialog(xbmcgui.WindowXMLDialog):
+    def __init__(self,*args,**kwargs):
+        self.main = kwargs.get('main')
+        self.player = PlayMonitor()
+        self.player.setVideoValidity()
+
+    def onClick(self,controlID):
+        if controlID == 200:
+            self.main.stopDownload()
+        elif controlID == 201:
+            self.main.stopAllDownloads()
+        elif controlID == 202:
+            self.main.manageQueue()
+        elif controlID == 203:
+            self.main.downloadPlaying()
+        elif controlID == 204:
+            self.main.settings()
+
 class main():
     def __init__(self):
         arg = self.getArg()
@@ -11,37 +48,10 @@ class main():
         elif arg == 'UPDATE':
             self.update()
         else:
-            self.showOptions()
+            showOptions(self)
 
     def getArg(self):
         return sys.argv[-1]
-
-    def showOptions(self):
-        option = True
-        while option:
-            d = util.xbmcDialogSelect('Options')
-            if servicecontrol.ServiceControl().isDownloading():
-                d.addItem('stop','Stop Current Download')
-                d.addItem('stop_all','Stop All Downloads')
-                d.addItem('manage','Manage Queue')
-            if xbmc.getCondVisibility('Player.HasVideo'):
-                url = xbmc.Player().getPlayingFile()
-                if '://' in url:
-                    d.addItem('download_playing_video','Download Playing Video')
-            d.addItem('settings','Settings')
-
-            option = d.getResult()
-            if not option: return
-            if option == 'stop':
-                self.stopDownload()
-            elif option == 'stop_all':
-                self.stopAllDownloads()
-            elif option == 'manage':
-                self.manageQueue()
-            elif option == 'download_playing_video':
-                self.downloadPlaying()
-            elif option == 'settings':
-                self.settings()
 
     def downloadPlaying(self):
         title = xbmc.getInfoLabel('Player.Title')
@@ -57,7 +67,6 @@ class main():
             try:
                 import urlparse
                 for k,v in urlparse.parse_qsl(extra):
-                    print k,v
                     if k.lower() == 'user-agent':
                         info['user_agent'] = v
                         break

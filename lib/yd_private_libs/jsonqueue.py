@@ -7,6 +7,7 @@ class JsonRAFifoQueue(object):
         self.path = path
         self.lockPath = os.path.join(os.path.dirname(self.path),os.path.basename(self.path) + '.lock')
         self.timeout = 5
+        self._size = 0
 
     def _locking(f):
         def wrapper(self,*args):
@@ -38,7 +39,7 @@ class JsonRAFifoQueue(object):
         if os.path.exists(self.lockPath): os.remove(self.lockPath)
 
     def loadQueue(self):
-        if not os.path.exists(self.path): return
+        if not os.path.exists(self.path): return []
 
         with open(self.path,'r') as f:
             try:
@@ -49,6 +50,7 @@ class JsonRAFifoQueue(object):
         return []
 
     def saveQueue(self,queue):
+        self.size = len(queue)
         with open(self.path,'w') as f:
             json.dump(queue,f)
 
@@ -90,10 +92,20 @@ class JsonRAFifoQueue(object):
     def items(self):
         return self.loadQueue()
 
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self,val):
+        self._size = val
+
 class XBMCJsonRAFifoQueue(JsonRAFifoQueue):
     def __init__(self,path):
         JsonRAFifoQueue.__init__(self,path)
-        self.lockProperty = 'XBMCJsonRAFifoQueue_{0}'.format(self.lockPath)
+        filename = os.path.basename(self.path)
+        self.lockProperty = 'XBMCJsonRAFifoQueue_{0}.lock'.format(filename)
+        self.sizeProperty = 'XBMCJsonRAFifoQueue_{0}.size'.format(filename)
 
     def _lockIsStale(self):
         last = self._lockProperty()
@@ -119,3 +131,10 @@ class XBMCJsonRAFifoQueue(JsonRAFifoQueue):
     def unlock(self):
         xbmcgui.Window(10000).setProperty( self.lockProperty,'' )
 
+    @property
+    def size(self):
+        return xbmc.getInfoLabel('Window(10000).Property({0})'.format(self.sizeProperty))
+
+    @size.setter
+    def size(self,val):
+        xbmcgui.Window(10000).setProperty( self.sizeProperty,str(val))

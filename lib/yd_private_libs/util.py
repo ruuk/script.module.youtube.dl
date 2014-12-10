@@ -7,7 +7,7 @@ T = ADDON.getLocalizedString
 
 TMP_PATH = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'tmp')
 if not os.path.exists(TMP_PATH): os.makedirs(TMP_PATH)
-QUEUE_FILE = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'queue')
+QUEUE_FILE = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('profile')).decode('utf-8'),'download.queue')
 MODULE_PATH = os.path.join(xbmc.translatePath(ADDON.getAddonInfo('path')).decode('utf-8'),'lib')
 
 
@@ -77,3 +77,4 @@ class xbmcDialogSelect:
         idx = xbmcgui.Dialog().select(self.heading,displays)
         if idx < 0: return None
         return IDs[idx]
+

@@ -55,8 +55,9 @@ def updateCore(force=False):
             util.LOG('Old version removed')
 
         urllib.urlretrieve(LATEST_URL,filename=archivePath)
-        tf = tarfile.open(archivePath,mode='r:gz')
-        tf.extractall(path=profile)
+        with tarfile.open(archivePath,mode='r:gz') as tf:
+            members = [m for m in tf.getmembers() if m.name.startswith('youtube-dl/youtube_dl')] #get just the files from the youtube_dl source directory
+            tf.extractall(path=profile,members=members)
     except:
         util.ERROR('Core update FAILED')
 
