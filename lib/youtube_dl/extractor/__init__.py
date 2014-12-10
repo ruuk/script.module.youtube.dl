@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from .abc import ABCIE
 from .academicearth import AcademicEarthCourseIE
 from .addanime import AddAnimeIE
@@ -22,19 +24,23 @@ from .arte import (
 )
 from .audiomack import AudiomackIE
 from .auengine import AUEngineIE
+from .azubu import AzubuIE
 from .bambuser import BambuserIE, BambuserChannelIE
 from .bandcamp import BandcampIE, BandcampAlbumIE
 from .bbccouk import BBCCoUkIE
 from .beeg import BeegIE
 from .behindkink import BehindKinkIE
+from .bet import BetIE
 from .bild import BildIE
 from .bilibili import BiliBiliIE
 from .blinkx import BlinkxIE
 from .bliptv import BlipTVIE, BlipTVUserIE
 from .bloomberg import BloombergIE
+from .bpb import BpbIE
 from .br import BRIE
 from .breakcom import BreakIE
 from .brightcove import BrightcoveIE
+from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
 from .canal13cl import Canal13clIE
@@ -115,7 +121,10 @@ from .fktv import (
     FKTVPosteckeIE,
 )
 from .flickr import FlickrIE
+from .folketinget import FolketingetIE
 from .fourtube import FourTubeIE
+from .foxgay import FoxgayIE
+from .foxnews import FoxNewsIE
 from .franceculture import FranceCultureIE
 from .franceinter import FranceInterIE
 from .francetv import (
@@ -127,6 +136,7 @@ from .francetv import (
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
+from .freevideo import FreeVideoIE
 from .funnyordie import FunnyOrDieIE
 from .gamekings import GamekingsIE
 from .gameone import (
@@ -141,6 +151,7 @@ from .generic import GenericIE
 from .glide import GlideIE
 from .globo import GloboIE
 from .godtube import GodTubeIE
+from .goldenmoustache import GoldenMoustacheIE
 from .golem import GolemIE
 from .googleplus import GooglePlusIE
 from .googlesearch import GoogleSearchIE
@@ -209,6 +220,7 @@ from .mdr import MDRIE
 from .metacafe import MetacafeIE
 from .metacritic import MetacriticIE
 from .mgoon import MgoonIE
+from .minhateca import MinhatecaIE
 from .ministrygrid import MinistryGridIE
 from .mit import TechTVMITIE, MITIE, OCWMITIE
 from .mitele import MiTeleIE
@@ -235,9 +247,10 @@ from .muenchentv import MuenchenTVIE
 from .musicplayon import MusicPlayOnIE
 from .musicvault import MusicVaultIE
 from .muzu import MuzuTVIE
-from .myspace import MySpaceIE
+from .myspace import MySpaceIE, MySpaceAlbumIE
 from .myspass import MySpassIE
 from .myvideo import MyVideoIE
+from .myvidster import MyVidsterIE
 from .naver import NaverIE
 from .nba import NBAIE
 from .nbc import (
@@ -295,6 +308,7 @@ from .promptfile import PromptFileIE
 from .prosiebensat1 import ProSiebenSat1IE
 from .pyvideo import PyvideoIE
 from .quickvid import QuickVidIE
+from .radiode import RadioDeIE
 from .radiofrance import RadioFranceIE
 from .rai import RaiIE
 from .rbmaradio import RBMARadioIE
@@ -323,6 +337,7 @@ from .sbs import SBSIE
 from .scivee import SciVeeIE
 from .screencast import ScreencastIE
 from .servingsys import ServingSysIE
+from .sexu import SexuIE
 from .sexykarma import SexyKarmaIE
 from .shared import SharedIE
 from .sharesix import ShareSixIE
@@ -368,6 +383,7 @@ from .syfy import SyfyIE
 from .sztvhu import SztvHuIE
 from .tagesschau import TagesschauIE
 from .tapely import TapelyIE
+from .tass import TassIE
 from .teachertube import (
     TeacherTubeIE,
     TeacherTubeUserIE,
@@ -376,6 +392,7 @@ from .teachingchannel import TeachingChannelIE
 from .teamcoco import TeamcocoIE
 from .techtalks import TechTalksIE
 from .ted import TEDIE
+from .telebruxelles import TeleBruxellesIE
 from .telecinco import TelecincoIE
 from .telemb import TeleMBIE
 from .tenplay import TenPlayIE
@@ -387,6 +404,7 @@ from .thesixtyone import TheSixtyOneIE
 from .thisav import ThisAVIE
 from .tinypic import TinyPicIE
 from .tlc import TlcIE, TlcDeIE
+from .tmz import TMZIE
 from .tnaflix import TNAFlixIE
 from .thvideo import (
     THVideoIE,
@@ -400,11 +418,13 @@ from .trutube import TruTubeIE
 from .tube8 import Tube8IE
 from .tudou import TudouIE
 from .tumblr import TumblrIE
+from .tunein import TuneInIE
 from .turbo import TurboIE
 from .tutv import TutvIE
 from .tvigle import TvigleIE
 from .tvp import TvpIE
 from .tvplay import TVPlayIE
+from .twentyfourvideo import TwentyFourVideoIE
 from .twitch import TwitchIE
 from .ubu import UbuIE
 from .udemy import (
@@ -421,6 +441,7 @@ from .vesti import VestiIE
 from .vevo import VevoIE
 from .vgtv import VGTVIE
 from .vh1 import VH1IE
+from .vice import ViceIE
 from .viddler import ViddlerIE
 from .videobam import VideoBamIE
 from .videodetective import VideoDetectiveIE
@@ -448,7 +469,10 @@ from .vine import (
     VineUserIE,
 )
 from .viki import VikiIE
-from .vk import VKIE
+from .vk import (
+    VKIE,
+    VKUserVideosIE,
+)
 from .vodlocker import VodlockerIE
 from .vporn import VpornIE
 from .vrt import VRTIE
@@ -472,6 +496,7 @@ from .wrzuta import WrzutaIE
 from .xbef import XBefIE
 from .xboxclips import XboxClipsIE
 from .xhamster import XHamsterIE
+from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xvideos import XVideosIE
 from .xtube import XTubeUserIE, XTubeIE
@@ -502,6 +527,10 @@ from .youtube import (
     YoutubeWatchLaterIE,
 )
 from .zdf import ZDFIE
+from .zingmp3 import (
+    ZingMp3SongIE,
+    ZingMp3AlbumIE,
+)
 
 _ALL_CLASSES = [
     klass
@@ -520,4 +549,4 @@ def gen_extractors():
 
 def get_info_extractor(ie_name):
     """Returns the info extractor class with the given ie_name"""
-    return globals()[ie_name+'IE']
+    return globals()[ie_name + 'IE']

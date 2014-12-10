@@ -1,54 +1,56 @@
 from __future__ import unicode_literals
 
 import getpass
+import optparse
 import os
+import re
 import subprocess
 import sys
 
 
 try:
     import urllib.request as compat_urllib_request
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import urllib2 as compat_urllib_request
 
 try:
     import urllib.error as compat_urllib_error
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import urllib2 as compat_urllib_error
 
 try:
     import urllib.parse as compat_urllib_parse
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import urllib as compat_urllib_parse
 
 try:
     from urllib.parse import urlparse as compat_urllib_parse_urlparse
-except ImportError: # Python 2
+except ImportError:  # Python 2
     from urlparse import urlparse as compat_urllib_parse_urlparse
 
 try:
     import urllib.parse as compat_urlparse
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import urlparse as compat_urlparse
 
 try:
     import http.cookiejar as compat_cookiejar
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import cookielib as compat_cookiejar
 
 try:
     import html.entities as compat_html_entities
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import htmlentitydefs as compat_html_entities
 
 try:
     import html.parser as compat_html_parser
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import HTMLParser as compat_html_parser
 
 try:
     import http.client as compat_http_client
-except ImportError: # Python 2
+except ImportError:  # Python 2
     import httplib as compat_http_client
 
 try:
@@ -109,12 +111,12 @@ except ImportError:
 
 try:
     from urllib.parse import parse_qs as compat_parse_qs
-except ImportError: # Python 2
+except ImportError:  # Python 2
     # HACK: The following is the correct parse_qs implementation from cpython 3's stdlib.
     # Python 2's version is apparently totally broken
 
     def _parse_qsl(qs, keep_blank_values=False, strict_parsing=False,
-                encoding='utf-8', errors='replace'):
+                   encoding='utf-8', errors='replace'):
         qs, _coerce_result = qs, unicode
         pairs = [s2 for s1 in qs.split('&') for s2 in s1.split(';')]
         r = []
@@ -143,10 +145,10 @@ except ImportError: # Python 2
         return r
 
     def compat_parse_qs(qs, keep_blank_values=False, strict_parsing=False,
-                encoding='utf-8', errors='replace'):
+                        encoding='utf-8', errors='replace'):
         parsed_result = {}
         pairs = _parse_qsl(qs, keep_blank_values, strict_parsing,
-                        encoding=encoding, errors=errors)
+                           encoding=encoding, errors=errors)
         for name, value in pairs:
             if name in parsed_result:
                 parsed_result[name].append(value)
@@ -155,12 +157,12 @@ except ImportError: # Python 2
         return parsed_result
 
 try:
-    compat_str = unicode # Python 2
+    compat_str = unicode  # Python 2
 except NameError:
     compat_str = str
 
 try:
-    compat_chr = unichr # Python 2
+    compat_chr = unichr  # Python 2
 except NameError:
     compat_chr = chr
 
@@ -173,12 +175,17 @@ try:
     from shlex import quote as shlex_quote
 except ImportError:  # Python < 3.3
     def shlex_quote(s):
-        return "'" + s.replace("'", "'\"'\"'") + "'"
+        if re.match(r'^[-_\w./]+$', s):
+            return s
+        else:
+            return "'" + s.replace("'", "'\"'\"'") + "'"
 
 
 def compat_ord(c):
-    if type(c) is int: return c
-    else: return ord(c)
+    if type(c) is int:
+        return c
+    else:
+        return ord(c)
 
 
 if sys.version_info >= (3, 0):
@@ -240,7 +247,7 @@ else:
                 userhome = compat_getenv('HOME')
             elif 'USERPROFILE' in os.environ:
                 userhome = compat_getenv('USERPROFILE')
-            elif not 'HOMEPATH' in os.environ:
+            elif 'HOMEPATH' not in os.environ:
                 return path
             else:
                 try:
@@ -249,7 +256,7 @@ else:
                     drive = ''
                 userhome = os.path.join(drive, compat_getenv('HOMEPATH'))
 
-            if i != 1: #~user
+            if i != 1:  # ~user
                 userhome = os.path.join(os.path.dirname(userhome), path[1:i])
 
             return userhome + path[i:]
@@ -263,7 +270,7 @@ if sys.version_info < (3, 0):
         print(s.encode(preferredencoding(), 'xmlcharrefreplace'))
 else:
     def compat_print(s):
-        assert type(s) == type(u'')
+        assert isinstance(s, compat_str)
         print(s)
 
 
@@ -288,6 +295,36 @@ if sys.version_info < (3, 0) and sys.platform == 'win32':
 else:
     compat_getpass = getpass.getpass
 
+# Old 2.6 and 2.7 releases require kwargs to be bytes
+try:
+    (lambda x: x)(**{'x': 0})
+except TypeError:
+    def compat_kwargs(kwargs):
+        return dict((bytes(k), v) for k, v in kwargs.items())
+else:
+    compat_kwargs = lambda kwargs: kwargs
+
+
+# Fix https://github.com/rg3/youtube-dl/issues/4223
+# See http://bugs.python.org/issue9161 for what is broken
+def workaround_optparse_bug9161():
+    op = optparse.OptionParser()
+    og = optparse.OptionGroup(op, 'foo')
+    try:
+        og.add_option('-t')
+    except TypeError:
+        real_add_option = optparse.OptionGroup.add_option
+
+        def _compat_add_option(self, *args, **kwargs):
+            enc = lambda v: (
+                v.encode('ascii', 'replace') if isinstance(v, compat_str)
+                else v)
+            bargs = [enc(a) for a in args]
+            bkwargs = dict(
+                (k, enc(v)) for k, v in kwargs.items())
+            return real_add_option(self, *bargs, **bkwargs)
+        optparse.OptionGroup.add_option = _compat_add_option
+
 
 __all__ = [
     'compat_HTTPError',
@@ -299,6 +336,7 @@ __all__ = [
     'compat_html_entities',
     'compat_html_parser',
     'compat_http_client',
+    'compat_kwargs',
     'compat_ord',
     'compat_parse_qs',
     'compat_print',
@@ -314,4 +352,5 @@ __all__ = [
     'compat_xml_parse_error',
     'shlex_quote',
     'subprocess_check_output',
+    'workaround_optparse_bug9161',
 ]
