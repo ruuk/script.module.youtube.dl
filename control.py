@@ -106,15 +106,17 @@ class main():
     def showInfo(self,updated=False):
         updater.set_youtube_dl_importPath()
         import youtube_dl
-        from lib import YDStreamUtils
-        import time
+#        from lib import YDStreamUtils
+#        import time
+        line1 = 'Addon version: [B]{0}[/B]'.format(util.ADDON.getAddonInfo('version'))
         version = youtube_dl.version.__version__
-        line1 = '{0} core version: [B]{1}[/B]'.format(updated and 'Updated' or 'Used', version)
-        check = util.getSetting('last_core_check',0)
-        line2 = 'Never checked for new version.'
-        if check:
-            duration = YDStreamUtils.durationToShortText(int(time.time() - check))
-            line2 = 'Last check for new version: [B]{0}[/B] ago'.format(duration)
+        line2 = 'Core version: [B]{0}[/B]'.format(version)
+#        line1 = '{0} core version: [B]{1}[/B]'.format(updated and 'Updated' or 'Used', version)
+#        check = util.getSetting('last_core_check',0)
+#        line2 = 'Never checked for new version.'
+#        if check:
+#            duration = YDStreamUtils.durationToShortText(int(time.time() - check))
+#            line2 = 'Last check for new version: [B]{0}[/B] ago'.format(duration)
 
         xbmcgui.Dialog().ok('Info',line1,'',line2)
 

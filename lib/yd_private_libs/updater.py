@@ -6,7 +6,8 @@ LATEST_URL = 'https://yt-dl.org/latest/youtube-dl.tar.gz'
 VERSION_URL = 'https://yt-dl.org/latest/version'
 
 def set_youtube_dl_importPath():
-    if not util.getSetting('use_update_version',True): return
+    return
+    #if not util.getSetting('use_update_version',True): return
     import os
     import xbmc
     profile = xbmc.translatePath(util.ADDON.getAddonInfo('profile')).decode('utf-8')
@@ -19,16 +20,10 @@ def saveVersion(version):
     util.setSetting('core_version',version)
 
 def updateCore(force=False):
-    if not util.getSetting('auto_update',True) and not force: return
+    if not force: return
     import xbmc
     import os, urllib, urllib2
-    import tarfile, time
-
-    now = int(time.time())
-    last = int(util.getSetting('last_core_check',0))
-    if now - last < 86400 and not force: return #Only check for a new version once every 24 hours
-
-    util.setSetting('last_core_check',str(now))
+    import tarfile
 
     util.LOG('Checking for new youtube_dl core version...')
 

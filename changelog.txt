@@ -1,7 +1,11 @@
+*** 14.1210.1 ***
+
+Removed core updating options
+
 *** 14.1210.0 ***
 
 Update youtube-dl core to 2014.12.10.3
-Added the auto-updating of the youtube-dl core
+Added auto-updating of the youtube-dl core
 Added the ability to download in the background
 Added to programs/addons/apps for controlling background downloads and queue management
 Added settings for stream selection defaults, download path defaults and auto-update defaults
