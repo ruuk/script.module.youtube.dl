@@ -27,6 +27,7 @@ from .compat import (
     compat_cookiejar,
     compat_expanduser,
     compat_http_client,
+    compat_kwargs,
     compat_str,
     compat_urllib_error,
     compat_urllib_request,
@@ -67,7 +68,11 @@ from .cache import Cache
 from .extractor import get_info_extractor, gen_extractors
 from .downloader import get_suitable_downloader
 from .downloader.rtmp import rtmpdump_version
-from .postprocessor import FFmpegMergerPP, FFmpegPostProcessor
+from .postprocessor import (
+    FFmpegMergerPP,
+    FFmpegPostProcessor,
+    get_postprocessor,
+)
 from .version import __version__
 
 
@@ -116,7 +121,7 @@ class YoutubeDL(object):
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
     simulate:          Do not download the video files.
-    format:            Video format code.
+    format:            Video format code. See options.py for more information.
     format_limit:      Highest quality format to try.
     outtmpl:           Template for output names.
     restrictfilenames: Do not allow "&" and spaces in file names
@@ -124,6 +129,7 @@ class YoutubeDL(object):
     nooverwrites:      Prevent overwriting files.
     playliststart:     Playlist item to start at.
     playlistend:       Playlist item to end at.
+    playlistreverse:   Download playlist items in reverse order.
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
     logger:            Log messages to a logging.Logger instance.
@@ -175,6 +181,28 @@ class YoutubeDL(object):
     extract_flat:      Do not resolve URLs, return the immediate result.
                        Pass in 'in_playlist' to only show this behavior for
                        playlist items.
+    postprocessors:    A list of dictionaries, each with an entry
+                       * key:  The name of the postprocessor. See
+                               youtube_dl/postprocessor/__init__.py for a list.
+                       as well as any further keyword arguments for the
+                       postprocessor.
+    progress_hooks:    A list of functions that get called on download
+                       progress, with a dictionary with the entries
+                       * filename: The final filename
+                       * status: One of "downloading" and "finished"
+
+                       The dict may also have some of the following entries:
+
+                       * downloaded_bytes: Bytes on disk
+                       * total_bytes: Size of the whole file, None if unknown
+                       * tmpfilename: The filename we're currently writing to
+                       * eta: The estimated time in seconds, None if unknown
+                       * speed: The download speed in bytes/second, None if
+                                unknown
+
+                       Progress hooks are guaranteed to be called at least once
+                       (with status "finished") if the download is successful.
+
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the FileDownloader:
@@ -254,6 +282,16 @@ class YoutubeDL(object):
         if auto_init:
             self.print_debug_header()
             self.add_default_info_extractors()
+
+        for pp_def_raw in self.params.get('postprocessors', []):
+            pp_class = get_postprocessor(pp_def_raw['key'])
+            pp_def = dict(pp_def_raw)
+            del pp_def['key']
+            pp = pp_class(self, **compat_kwargs(pp_def))
+            self.add_post_processor(pp)
+
+        for ph in self.params.get('progress_hooks', []):
+            self.add_progress_hook(ph)
 
     def warn_if_short_id(self, argv):
         # short YouTube ID starting with dash?
@@ -622,23 +660,15 @@ class YoutubeDL(object):
                 ie_result['url'], ie_key=ie_result.get('ie_key'),
                 extra_info=extra_info, download=False, process=False)
 
-            def make_result(embedded_info):
-                new_result = ie_result.copy()
-                for f in ('_type', 'url', 'ext', 'player_url', 'formats',
-                          'entries', 'ie_key', 'duration',
-                          'subtitles', 'annotations', 'format',
-                          'thumbnail', 'thumbnails'):
-                    if f in new_result:
-                        del new_result[f]
-                    if f in embedded_info:
-                        new_result[f] = embedded_info[f]
-                return new_result
-            new_result = make_result(info)
+            force_properties = dict(
+                (k, v) for k, v in ie_result.items() if v is not None)
+            for f in ('_type', 'url'):
+                if f in force_properties:
+                    del force_properties[f]
+            new_result = info.copy()
+            new_result.update(force_properties)
 
             assert new_result.get('_type') != 'url_transparent'
-            if new_result.get('_type') == 'compat_list':
-                new_result['entries'] = [
-                    make_result(e) for e in new_result['entries']]
 
             return self.process_ie_result(
                 new_result, download=download, extra_info=extra_info)
@@ -678,8 +708,11 @@ class YoutubeDL(object):
                     "[%s] playlist %s: Downloading %d videos" %
                     (ie_result['extractor'], playlist, n_entries))
 
+            if self.params.get('playlistreverse', False):
+                entries = entries[::-1]
+
             for i, entry in enumerate(entries, 1):
-                self.to_screen('[download] Downloading video #%s of %s' % (i, n_entries))
+                self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
                 extra = {
                     'n_entries': n_entries,
                     'playlist': playlist,

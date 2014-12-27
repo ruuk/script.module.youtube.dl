@@ -10,10 +10,12 @@ import xml.etree.ElementTree
 from hashlib import sha1
 from math import pow, sqrt, floor
 from .subtitles import SubtitlesInfoExtractor
-from ..utils import (
-    ExtractorError,
+from ..compat import (
     compat_urllib_parse,
     compat_urllib_request,
+)
+from ..utils import (
+    ExtractorError,
     bytes_to_intlist,
     intlist_to_bytes,
     unified_strdate,
@@ -30,7 +32,6 @@ class CrunchyrollIE(SubtitlesInfoExtractor):
     _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?:[^/]*/[^/?&]*?|media/\?id=)(?P<video_id>[0-9]+))(?:[/?&]|$)'
     _TEST = {
         'url': 'http://www.crunchyroll.com/wanna-be-the-strongest-in-the-world/episode-1-an-idol-wrestler-is-born-645513',
-        #'md5': 'b1639fd6ddfaa43788c85f6d1dddd412',
         'info_dict': {
             'id': '645513',
             'ext': 'flv',

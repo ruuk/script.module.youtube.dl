@@ -1,3 +1,7 @@
+*** 14.1217.0 ***
+
+Updated youtube-dl core to 2014.12.17.2
+
 *** 14.1210.1 ***
 
 Removed core updating options

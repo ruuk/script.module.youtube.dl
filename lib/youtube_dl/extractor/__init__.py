@@ -5,6 +5,7 @@ from .academicearth import AcademicEarthCourseIE
 from .addanime import AddAnimeIE
 from .adultswim import AdultSwimIE
 from .aftonbladet import AftonbladetIE
+from .aljazeera import AlJazeeraIE
 from .anitube import AnitubeIE
 from .anysex import AnySexIE
 from .aol import AolIE
@@ -51,7 +52,7 @@ from .cbsnews import CBSNewsIE
 from .ceskatelevize import CeskaTelevizeIE
 from .channel9 import Channel9IE
 from .chilloutzone import ChilloutzoneIE
-from .cinemassacre import CinemassacreIE
+from .cinchcast import CinchcastIE
 from .clipfish import ClipfishIE
 from .cliphunter import CliphunterIE
 from .clipsyndicate import ClipsyndicateIE
@@ -65,6 +66,7 @@ from .cnn import (
 )
 from .collegehumor import CollegeHumorIE
 from .comedycentral import ComedyCentralIE, ComedyCentralShowsIE
+from .comcarcoff import ComCarCoffIE
 from .condenast import CondeNastIE
 from .cracked import CrackedIE
 from .criterion import CriterionIE
@@ -148,6 +150,7 @@ from .gamestar import GameStarIE
 from .gametrailers import GametrailersIE
 from .gdcvault import GDCVaultIE
 from .generic import GenericIE
+from .giantbomb import GiantBombIE
 from .glide import GlideIE
 from .globo import GloboIE
 from .godtube import GodTubeIE
@@ -158,6 +161,7 @@ from .googlesearch import GoogleSearchIE
 from .gorillavid import GorillaVidIE
 from .goshgay import GoshgayIE
 from .grooveshark import GroovesharkIE
+from .groupon import GrouponIE
 from .hark import HarkIE
 from .heise import HeiseIE
 from .helsinki import HelsinkiIE
@@ -313,6 +317,7 @@ from .radiofrance import RadioFranceIE
 from .rai import RaiIE
 from .rbmaradio import RBMARadioIE
 from .redtube import RedTubeIE
+from .restudy import RestudyIE
 from .reverbnation import ReverbNationIE
 from .ringtv import RingTVIE
 from .ro220 import Ro220IE
@@ -321,6 +326,7 @@ from .roxwel import RoxwelIE
 from .rtbf import RTBFIE
 from .rtlnl import RtlXlIE
 from .rtlnow import RTLnowIE
+from .rtp import RTPIE
 from .rts import RTSIE
 from .rtve import RTVEALaCartaIE, RTVELiveIE
 from .ruhd import RUHDIE
@@ -336,6 +342,8 @@ from .savefrom import SaveFromIE
 from .sbs import SBSIE
 from .scivee import SciVeeIE
 from .screencast import ScreencastIE
+from .screencastomatic import ScreencastOMaticIE
+from .screenwavemedia import CinemassacreIE, ScreenwaveMediaIE, TeamFourIE
 from .servingsys import ServingSysIE
 from .sexu import SexuIE
 from .sexykarma import SexyKarmaIE
@@ -504,6 +512,7 @@ from .yahoo import (
     YahooIE,
     YahooSearchIE,
 )
+from .yesjapan import YesJapanIE
 from .ynet import YnetIE
 from .youjizz import YouJizzIE
 from .youku import YoukuIE
@@ -526,7 +535,7 @@ from .youtube import (
     YoutubeUserIE,
     YoutubeWatchLaterIE,
 )
-from .zdf import ZDFIE
+from .zdf import ZDFIE, ZDFChannelIE
 from .zingmp3 import (
     ZingMp3SongIE,
     ZingMp3AlbumIE,

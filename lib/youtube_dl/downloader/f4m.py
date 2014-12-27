@@ -9,10 +9,12 @@ import xml.etree.ElementTree as etree
 
 from .common import FileDownloader
 from .http import HttpFD
+from ..compat import (
+    compat_urlparse,
+)
 from ..utils import (
     struct_pack,
     struct_unpack,
-    compat_urlparse,
     format_bytes,
     encodeFilename,
     sanitize_open,
@@ -201,7 +203,7 @@ def write_flv_header(stream, metadata):
     stream.write(b'\x00\x00\x00\x00\x00\x00\x00')
     stream.write(metadata)
     # Magic numbers extracted from the output files produced by AdobeHDS.php
-    #(https://github.com/K-S-V/Scripts)
+    # (https://github.com/K-S-V/Scripts)
     stream.write(b'\x00\x00\x01\x73')
 
 
@@ -231,6 +233,7 @@ class F4mFD(FileDownloader):
                 'continuedl': True,
                 'quiet': True,
                 'noprogress': True,
+                'ratelimit': self.params.get('ratelimit', None),
                 'test': self.params.get('test', False),
             }
         )

@@ -118,6 +118,7 @@ class InfoExtractor(object):
 
     The following fields are optional:
 
+    alt_title:      A secondary title of the video.
     display_id      An alternative identifier for the video, not necessarily
                     unique, but available before title. Typically, id is
                     something like "4234987", title "Dancing naked mole rats",
@@ -129,7 +130,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height"},
                                         deprecated)
     thumbnail:      Full URL to a video thumbnail image.
-    description:    One-line video description.
+    description:    Full video description.
     uploader:       Full name of the video uploader.
     timestamp:      UNIX timestamp of the moment the video became available.
     upload_date:    Video upload date (YYYYMMDD).
@@ -391,6 +392,10 @@ class InfoExtractor(object):
             url_or_request, video_id, note, errnote, fatal=fatal)
         if (not fatal) and json_string is False:
             return None
+        return self._parse_json(
+            json_string, video_id, transform_source=transform_source, fatal=fatal)
+
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
         if transform_source:
             json_string = transform_source(json_string)
         try:

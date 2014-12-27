@@ -166,7 +166,7 @@ def xpath_text(node, xpath, name=None, fatal=False):
         xpath = xpath.encode('ascii')
 
     n = node.find(xpath)
-    if n is None:
+    if n is None or n.text is None:
         if fatal:
             name = xpath if name is None else name
             raise ExtractorError('Could not find XML element %s' % name)
@@ -363,7 +363,7 @@ def encodeArgument(s):
     if not isinstance(s, compat_str):
         # Legacy code that uses byte strings
         # Uncomment the following line after fixing all post processors
-        #assert False, 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
+        # assert False, 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
         s = s.decode('ascii')
     return encodeFilename(s, True)
 
@@ -388,6 +388,17 @@ def formatSeconds(secs):
 
 
 def make_HTTPS_handler(opts_no_check_certificate, **kwargs):
+    if hasattr(ssl, 'create_default_context'):  # Python >= 3.4 or 2.7.9
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        if opts_no_check_certificate:
+            context.verify_mode = ssl.CERT_NONE
+        try:
+            return compat_urllib_request.HTTPSHandler(context=context, **kwargs)
+        except TypeError:
+            # Python 2.7.8
+            # (create_default_context present but HTTPSHandler has no context=)
+            pass
+
     if sys.version_info < (3, 2):
         import httplib
 
@@ -409,22 +420,12 @@ def make_HTTPS_handler(opts_no_check_certificate, **kwargs):
             def https_open(self, req):
                 return self.do_open(HTTPSConnectionV3, req)
         return HTTPSHandlerV3(**kwargs)
-    elif hasattr(ssl, 'create_default_context'):  # Python >= 3.4
-        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.options &= ~ssl.OP_NO_SSLv3  # Allow older, not-as-secure SSLv3
-        if opts_no_check_certificate:
-            context.verify_mode = ssl.CERT_NONE
-        return compat_urllib_request.HTTPSHandler(context=context, **kwargs)
     else:  # Python < 3.4
         context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
         context.verify_mode = (ssl.CERT_NONE
                                if opts_no_check_certificate
                                else ssl.CERT_REQUIRED)
         context.set_default_verify_paths()
-        try:
-            context.load_default_certs()
-        except AttributeError:
-            pass  # Python < 3.4
         return compat_urllib_request.HTTPSHandler(context=context, **kwargs)
 
 
@@ -644,17 +645,19 @@ def parse_iso8601(date_str, delimiter='T'):
     return calendar.timegm(dt.timetuple())
 
 
-def unified_strdate(date_str):
+def unified_strdate(date_str, day_first=True):
     """Return a string with the date in the format YYYYMMDD"""
 
     if date_str is None:
         return None
-
     upload_date = None
     # Replace commas
     date_str = date_str.replace(',', ' ')
     # %z (UTC offset) is only supported in python>=3.2
     date_str = re.sub(r' ?(\+|-)[0-9]{2}:?[0-9]{2}$', '', date_str)
+    # Remove AM/PM + timezone
+    date_str = re.sub(r'(?i)\s*(?:AM|PM)\s+[A-Z]+', '', date_str)
+
     format_expressions = [
         '%d %B %Y',
         '%d %b %Y',
@@ -669,7 +672,6 @@ def unified_strdate(date_str):
         '%d/%m/%Y',
         '%d/%m/%y',
         '%Y/%m/%d %H:%M:%S',
-        '%d/%m/%Y %H:%M:%S',
         '%Y-%m-%d %H:%M:%S',
         '%Y-%m-%d %H:%M:%S.%f',
         '%d.%m.%Y %H:%M',
@@ -681,6 +683,14 @@ def unified_strdate(date_str):
         '%Y-%m-%dT%H:%M:%S.%f',
         '%Y-%m-%dT%H:%M',
     ]
+    if day_first:
+        format_expressions.extend([
+            '%d/%m/%Y %H:%M:%S',
+        ])
+    else:
+        format_expressions.extend([
+            '%m/%d/%Y %H:%M:%S',
+        ])
     for expression in format_expressions:
         try:
             upload_date = datetime.datetime.strptime(date_str, expression).strftime('%Y%m%d')
@@ -712,8 +722,10 @@ def date_from_str(date_str):
     Return a datetime object from a string in the format YYYYMMDD or
     (now|today)[+-][0-9](day|week|month|year)(s)?"""
     today = datetime.date.today()
-    if date_str == 'now'or date_str == 'today':
+    if date_str in ('now', 'today'):
         return today
+    if date_str == 'yesterday':
+        return today - datetime.timedelta(days=1)
     match = re.match('(now|today)(?P<sign>[+-])(?P<time>\d+)(?P<unit>day|week|month|year)(s)?', date_str)
     if match is not None:
         sign = match.group('sign')
@@ -808,22 +820,22 @@ def _windows_write_string(s, out):
 
     GetStdHandle = ctypes.WINFUNCTYPE(
         ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD)(
-        ("GetStdHandle", ctypes.windll.kernel32))
+        (b"GetStdHandle", ctypes.windll.kernel32))
     h = GetStdHandle(WIN_OUTPUT_IDS[fileno])
 
     WriteConsoleW = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE, ctypes.wintypes.LPWSTR,
         ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.wintypes.DWORD),
-        ctypes.wintypes.LPVOID)(("WriteConsoleW", ctypes.windll.kernel32))
+        ctypes.wintypes.LPVOID)((b"WriteConsoleW", ctypes.windll.kernel32))
     written = ctypes.wintypes.DWORD(0)
 
-    GetFileType = ctypes.WINFUNCTYPE(ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)(("GetFileType", ctypes.windll.kernel32))
+    GetFileType = ctypes.WINFUNCTYPE(ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)((b"GetFileType", ctypes.windll.kernel32))
     FILE_TYPE_CHAR = 0x0002
     FILE_TYPE_REMOTE = 0x8000
     GetConsoleMode = ctypes.WINFUNCTYPE(
         ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE,
         ctypes.POINTER(ctypes.wintypes.DWORD))(
-        ("GetConsoleMode", ctypes.windll.kernel32))
+        (b"GetConsoleMode", ctypes.windll.kernel32))
     INVALID_HANDLE_VALUE = ctypes.wintypes.DWORD(-1).value
 
     def not_a_console(handle):
@@ -1250,18 +1262,25 @@ def check_executable(exe, args=[]):
 
 
 def get_exe_version(exe, args=['--version'],
-                    version_re=r'version\s+([0-9._-a-zA-Z]+)',
-                    unrecognized='present'):
+                    version_re=None, unrecognized='present'):
     """ Returns the version of the specified executable,
     or False if the executable is not present """
     try:
-        out, err = subprocess.Popen(
+        out, _ = subprocess.Popen(
             [exe] + args,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
     except OSError:
         return False
-    firstline = out.partition(b'\n')[0].decode('ascii', 'ignore')
-    m = re.search(version_re, firstline)
+    if isinstance(out, bytes):  # Python 2.x
+        out = out.decode('ascii', 'ignore')
+    return detect_exe_version(out, version_re, unrecognized)
+
+
+def detect_exe_version(output, version_re=None, unrecognized='present'):
+    assert isinstance(output, compat_str)
+    if version_re is None:
+        version_re = r'version\s+([-0-9._a-zA-Z]+)'
+    m = re.search(version_re, output)
     if m:
         return m.group(1)
     else:
