@@ -6,6 +6,11 @@ Updated youtube-dl core to 2014.12.17.2
 
 Removed core updating options
 
+*** 15.318.0 ***
+
+Fix error causing 'Download Currently Playing Video' video to fail
+Update youtube-dl core to 2015.03.18
+
 *** 14.1210.0 ***
 
 Update youtube-dl core to 2014.12.10.3
