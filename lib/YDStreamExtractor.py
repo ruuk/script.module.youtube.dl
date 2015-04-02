@@ -273,6 +273,12 @@ def _handleDownload(info,path=None,duration=None,bg=False):
     StreamUtils.moveFile(filePath,path,filename=info.get('filename'))
     return result
 
+def downloadVideo(info,path):
+    """
+    Deprecated
+    """
+    return handleDownload(info,path=path)
+
 ###############################################################################
 # Public Methods
 ###############################################################################
@@ -300,7 +306,7 @@ def getVideoInfo(url,quality=None,resolve_redirects=False):
         return None
     return info
 
-def handleDownload(info,duration=None,bg=False):
+def handleDownload(info,duration=None,bg=False,path=None):
     """
     Download the selected video in vidinfo to a path the user chooses.
     Displays a progress dialog and ok/error message when finished.
@@ -312,7 +318,7 @@ def handleDownload(info,duration=None,bg=False):
     if bg:
         servicecontrol.ServiceControl().download(info,path,duration)
     else:
-        return _handleDownload(info,path,False,duration=duration)
+        return _handleDownload(info,path,duration=duration,bg=False)
 
 def download(info,path,template='%(title)s-%(id)s.%(ext)s'):
     """
