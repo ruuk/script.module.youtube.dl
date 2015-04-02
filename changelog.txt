@@ -1,3 +1,8 @@
+*** 15.318.0 ***
+
+Updated youtube-dl core to 2015.03.18
+Fix error causing 'Download Current Video' to fail
+
 *** 14.1217.0 ***
 
 Updated youtube-dl core to 2014.12.17.2
