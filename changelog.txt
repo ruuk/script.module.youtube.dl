@@ -1,5 +1,6 @@
-*** 16.0.0 ***
+*** 16.318.0 ***
 
+Updated youtube-dl core to 2016.03.18
 Fix error when viewing youtube-dl core info from settings
 Fix (hopefully) encoding error when checking for .part files on some platforms
 
