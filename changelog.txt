@@ -1,5 +1,6 @@
-*** 16.318.1 ***
+*** 16.327.0 ***
 
+Updated youtube-dl core to 2016.03.27
 Fix error caused by missing http_headers in info when ffmpeg is used
 
 *** 16.318.0 ***
