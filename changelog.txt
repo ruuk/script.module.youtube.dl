@@ -1,5 +1,6 @@
-*** 17.310.1 ***
+*** 17.518.0 ***
 
+Updated youtube-dl core to 2017.05.18.1
 Fix errors caused by Kodi datetime.strptime() issue
 
 *** 17.310.0 ***
