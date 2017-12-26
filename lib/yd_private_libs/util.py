@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-import xbmc, xbmcgui, xbmcaddon
+import xbmc, xbmcaddon
 import os, sys, traceback, binascii
+
+IsWeb = False
+try:
+    import xbmcgui
+except ImportError:
+    IsWeb = True
 
 ADDON = xbmcaddon.Addon(id='script.module.youtube.dl')
 T = ADDON.getLocalizedString
