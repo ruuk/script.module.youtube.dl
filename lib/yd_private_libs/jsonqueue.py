@@ -2,11 +2,11 @@
 import xbmc
 import os, json, hashlib, time
 
-IsWeb = False
+IS_WEB = False
 try:
     import xbmcgui
 except ImportError:
-    IsWeb = True
+    IS_WEB = True
 
 class JsonRAFifoQueue(object):
     def __init__(self,path):

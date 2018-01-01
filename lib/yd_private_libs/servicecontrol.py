@@ -6,11 +6,11 @@ import json
 import util
 import jsonqueue
 
-IsWeb = False
+IS_WEB = False
 try:
     import xbmcgui
 except ImportError:
-    IsWeb = True
+    IS_WEB = True
 
 BASE_COMMAND = 'XBMC.NotifyAll(script.module.youtube.dl,{0},"{{{1}}}")'
 BASE_ARG = '\\"{0}\\":\\"{1}\\"'

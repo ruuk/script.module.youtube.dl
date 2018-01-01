@@ -4,12 +4,12 @@ import math
 import xbmc
 from yd_private_libs import util
 
-IsWeb = False
+IS_WEB = False
 try:
     import xbmcgui
     import xbmcvfs
 except ImportError:
-    IsWeb = True
+    IS_WEB = True
 
 T = util.T
 

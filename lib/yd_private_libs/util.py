@@ -2,11 +2,11 @@
 import xbmc, xbmcaddon
 import os, sys, traceback, binascii
 
-IsWeb = False
+IS_WEB = False
 try:
     import xbmcgui
 except ImportError:
-    IsWeb = True
+    IS_WEB = True
 
 ADDON = xbmcaddon.Addon(id='script.module.youtube.dl')
 T = ADDON.getLocalizedString
