@@ -1,5 +1,6 @@
-*** 18.x.0 ***
+*** 18.619.0 ***
 
+Updated youtube-dl core to 2018.06.19
 Added dutch translation - (Thanks Quihico)
 Added greek translations - (Thanks Twilight0)
 
