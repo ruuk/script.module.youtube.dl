@@ -52,6 +52,7 @@ from ..utils import (
     GeoUtils,
     int_or_none,
     js_to_json,
+    JSON_LD_RE,
     mimetype2ext,
     orderedSet,
     parse_codecs,
@@ -68,6 +69,7 @@ from ..utils import (
     update_url_query,
     urljoin,
     url_basename,
+    url_or_none,
     xpath_element,
     xpath_text,
     xpath_with_ns,
@@ -210,6 +212,11 @@ class InfoExtractor(object):
                     If not explicitly set, calculated from timestamp.
     uploader_id:    Nickname or id of the video uploader.
     uploader_url:   Full URL to a personal webpage of the video uploader.
+    channel:        Full name of the channel the video is uploaded on.
+                    Note that channel fields may or may not repeat uploader
+                    fields. This depends on a particular extractor.
+    channel_id:     Id of the channel.
+    channel_url:    Full URL to a channel webpage.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -599,6 +606,11 @@ class InfoExtractor(object):
         except (compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error) as err:
             if isinstance(err, compat_urllib_error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
+                    # Retain reference to error to prevent file object from
+                    # being closed before it can be read. Works around the
+                    # effects of <https://bugs.python.org/issue15002>
+                    # introduced in Python 3.4.1.
+                    err.fp._error = err
                     return err.fp
 
             if errnote is False:
@@ -1149,8 +1161,7 @@ class InfoExtractor(object):
 
     def _search_json_ld(self, html, video_id, expected_type=None, **kwargs):
         json_ld = self._search_regex(
-            r'(?s)<script[^>]+type=(["\'])application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>',
-            html, 'JSON-LD', group='json_ld', **kwargs)
+            JSON_LD_RE, html, 'JSON-LD', group='json_ld', **kwargs)
         default = kwargs.get('default', NO_DEFAULT)
         if not json_ld:
             return default if default is not NO_DEFAULT else {}
@@ -1208,10 +1219,10 @@ class InfoExtractor(object):
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             info.update({
-                'url': e.get('contentUrl'),
+                'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnail': e.get('thumbnailUrl') or e.get('thumbnailURL'),
+                'thumbnail': url_or_none(e.get('thumbnailUrl') or e.get('thumbnailURL')),
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 'filesize': float_or_none(e.get('contentSize')),
@@ -1701,9 +1712,9 @@ class InfoExtractor(object):
                 # However, this is not always respected, for example, [2]
                 # contains EXT-X-STREAM-INF tag which references AUDIO
                 # rendition group but does not have CODECS and despite
-                # referencing audio group an audio group, it represents
-                # a complete (with audio and video) format. So, for such cases
-                # we will ignore references to rendition groups and treat them
+                # referencing an audio group it represents a complete
+                # (with audio and video) format. So, for such cases we will
+                # ignore references to rendition groups and treat them
                 # as complete formats.
                 if audio_group_id and codecs and f.get('vcodec') != 'none':
                     audio_group = groups.get(audio_group_id)
@@ -1859,9 +1870,7 @@ class InfoExtractor(object):
                         'height': height,
                     })
                 formats.extend(m3u8_formats)
-                continue
-
-            if src_ext == 'f4m':
+            elif src_ext == 'f4m':
                 f4m_url = src_url
                 if not f4m_params:
                     f4m_params = {
@@ -1871,9 +1880,13 @@ class InfoExtractor(object):
                 f4m_url += '&' if '?' in f4m_url else '?'
                 f4m_url += compat_urllib_parse_urlencode(f4m_params)
                 formats.extend(self._extract_f4m_formats(f4m_url, video_id, f4m_id='hds', fatal=False))
-                continue
-
-            if src_url.startswith('http') and self._is_valid_url(src, video_id):
+            elif src_ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    src_url, video_id, mpd_id='dash', fatal=False))
+            elif re.search(r'\.ism/[Mm]anifest', src_url):
+                formats.extend(self._extract_ism_formats(
+                    src_url, video_id, ism_id='mss', fatal=False))
+            elif src_url.startswith('http') and self._is_valid_url(src, video_id):
                 http_count += 1
                 formats.append({
                     'url': src_url,
@@ -1884,7 +1897,6 @@ class InfoExtractor(object):
                     'width': width,
                     'height': height,
                 })
-                continue
 
         return formats
 
@@ -2106,7 +2118,21 @@ class InfoExtractor(object):
                         representation_ms_info = extract_multisegment_info(representation, adaption_set_ms_info)
 
                         def prepare_template(template_name, identifiers):
-                            t = representation_ms_info[template_name]
+                            tmpl = representation_ms_info[template_name]
+                            # First of, % characters outside $...$ templates
+                            # must be escaped by doubling for proper processing
+                            # by % operator string formatting used further (see
+                            # https://github.com/rg3/youtube-dl/issues/16867).
+                            t = ''
+                            in_template = False
+                            for c in tmpl:
+                                t += c
+                                if c == '$':
+                                    in_template = not in_template
+                                elif c == '%' and not in_template:
+                                    t += c
+                            # Next, $...$ templates are translated to their
+                            # %(...) counterparts to be used with % operator
                             t = t.replace('$RepresentationID$', representation_id)
                             t = re.sub(r'\$(%s)\$' % '|'.join(identifiers), r'%(\1)d', t)
                             t = re.sub(r'\$(%s)%%([^$]+)\$' % '|'.join(identifiers), r'%(\1)\2', t)
@@ -2437,6 +2463,8 @@ class InfoExtractor(object):
                         media_info['subtitles'].setdefault(lang, []).append({
                             'url': absolute_url(src),
                         })
+            for f in media_info['formats']:
+                f.setdefault('http_headers', {})['Referer'] = base_url
             if media_info['formats'] or media_info['subtitles']:
                 entries.append(media_info)
         return entries
