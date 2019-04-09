@@ -13,13 +13,14 @@ from ..utils import (
     parse_duration,
     try_get,
     unified_strdate,
+    url_or_none,
 )
 
 
 class XHamsterIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:.+?\.)?xhamster\.com/
+                        (?:.+?\.)?xhamster\.(?:com|one)/
                         (?:
                             movies/(?P<id>\d+)/(?P<display_id>[^/]*)\.html|
                             videos/(?P<display_id_2>[^/]*)-(?P<id_2>\d+)
@@ -90,6 +91,9 @@ class XHamsterIE(InfoExtractor):
         # new URL schema
         'url': 'https://pt.xhamster.com/videos/euro-pedal-pumping-7937821',
         'only_matching': True,
+    }, {
+        'url': 'https://xhamster.one/videos/femaleagent-shy-beauty-takes-the-bait-1509445',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -137,7 +141,8 @@ class XHamsterIE(InfoExtractor):
                     else:
                         format_url = format_item
                         filesize = None
-                    if not isinstance(format_url, compat_str):
+                    format_url = url_or_none(format_url)
+                    if not format_url:
                         continue
                     formats.append({
                         'format_id': '%s-%s' % (format_id, quality),
@@ -198,7 +203,8 @@ class XHamsterIE(InfoExtractor):
                 default='{}'),
             video_id, fatal=False)
         for format_id, format_url in sources.items():
-            if not isinstance(format_url, compat_str):
+            format_url = url_or_none(format_url)
+            if not format_url:
                 continue
             if format_url in format_urls:
                 continue
