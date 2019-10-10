@@ -4,6 +4,7 @@ from lib.yd_private_libs import util, servicecontrol, updater
 import xbmc
 import xbmcgui
 
+T = util.T
 
 class PlayMonitor(xbmc.Player):
     def onPlayBackStarted(self):
@@ -60,8 +61,6 @@ class main():
         arg = self.getArg()
         if arg == 'INFO':
             self.showInfo()
-        elif arg == 'UPDATE':
-            self.update()
         else:
             showOptions(self)
 
@@ -96,16 +95,15 @@ class main():
         YDStreamExtractor.handleDownload(info, bg=True)
 
     def stopDownload(self):
-        yes = xbmcgui.Dialog().yesno(
-            'Cancel Download', 'Cancel current download?')
+        yes = xbmcgui.Dialog().yesno(T(32039), T(32040))
+
         if yes:
             servicecontrol.ServiceControl().stopDownload()
 
     def stopAllDownloads(self):
         yes = xbmcgui.Dialog().yesno(
-            'Cancel Downloads',
-            'Cancel current download and',
-            'all queued downloads?'
+            T(32041),
+            T(32042)
         )
         if yes:
             servicecontrol.ServiceControl().stopAllDownloads()
@@ -116,14 +114,6 @@ class main():
     def settings(self):
         util.ADDON.openSettings()
 
-    def update(self):
-        updated = self._update()
-        if updated:
-            self.showInfo(updated=True)
-        else:
-            xbmcgui.Dialog().ok(
-                'Up To Date', 'youtube-dl core is already up to date!')
-
     @util.busyDialog
     def _update(self):
         return updater.updateCore(force=True)
@@ -131,17 +121,10 @@ class main():
     def showInfo(self, updated=False):
         updater.set_youtube_dl_importPath()
         from lib import youtube_dl
-#        from lib import YDStreamUtils
-#        import time
-        line1 = 'Addon version: [B]{0}[/B]'.format(
-            util.ADDON.getAddonInfo('version'))
-        version = youtube_dl.version.__version__
-        line2 = 'Core version: [B]{0}[/B]'.format(version)
-#        line1 = '{0} core version: [B]{1}[/B]'.format(updated and 'Updated' or 'Used', version)
-#        check = util.getSetting('last_core_check',0)
-#        line2 = 'Never checked for new version.'
-#        if check:
-#            duration = YDStreamUtils.durationToShortText(int(time.time() - check))
-#            line2 = 'Last check for new version: [B]{0}[/B] ago'.format(duration)
 
-        xbmcgui.Dialog().ok('Info', line1, '', line2)
+        line1 = T(32043).format(
+            '[B]{0}[/B]'.format(util.ADDON.getAddonInfo('version')))
+        version = youtube_dl.version.__version__
+        line2 = T(32044).format('[B]{0}[/B]'.format(version))
+
+        xbmcgui.Dialog().ok(T(32045), line1, '', line2)
