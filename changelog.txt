@@ -1,7 +1,8 @@
 
-*** 19.x.x ***
+*** 19.912.1 ***
 
 Add German translation - (Thanks CurlingTongs)
+Updates for AddonSignals module
 
 *** 19.912.0 ***
 
