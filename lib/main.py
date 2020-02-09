@@ -6,6 +6,7 @@ import xbmcgui
 
 T = util.T
 
+
 class PlayMonitor(xbmc.Player):
     def onPlayBackStarted(self):
         self.setVideoValidity()
@@ -86,7 +87,7 @@ class main():
                     if k.lower() == 'user-agent':
                         info['user_agent'] = v
                         break
-            except:
+            except Exception:
                 util.ERROR(hide_tb=True)
 
         util.LOG(repr(info), debug=True)

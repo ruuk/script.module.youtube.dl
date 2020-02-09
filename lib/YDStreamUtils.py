@@ -37,6 +37,7 @@ class xbmcDialogProgressBase:
         self.setRange()
         self.initDialog()
 
+
     def initDialog(self): assert False, 'Not Implemented'
 
     def __enter__(self):

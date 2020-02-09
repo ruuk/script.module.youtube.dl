@@ -3,9 +3,9 @@ import xbmc
 import os
 import binascii
 import json
-import util
-import jsonqueue
 import AddonSignals
+from . import util
+from . import jsonqueue
 
 IS_WEB = False
 try:

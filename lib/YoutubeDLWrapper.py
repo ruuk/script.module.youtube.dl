@@ -39,7 +39,7 @@ except ImportError:
 
 try:
     import youtube_dl
-except:
+except Exception:
     util.ERROR('Failed to import youtube-dl')
     youtube_dl = None
 
@@ -209,7 +209,7 @@ class YoutubeDLWrapper(youtube_dl.YoutubeDL):
         if _CALLBACK:
             try:
                 return _CALLBACK(msg)
-            except:
+            except Exception:
                 util.ERROR('Error in callback. Removing.')
                 _CALLBACK = None
         else:
