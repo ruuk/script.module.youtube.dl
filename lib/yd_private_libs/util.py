@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import xbmc
-import xbmcaddon
+from kodi_six import xbmc
+from kodi_six import xbmcaddon
 import os
 import sys
 import traceback

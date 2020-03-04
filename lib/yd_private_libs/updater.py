@@ -4,13 +4,13 @@ from . import util
 
 LATEST_URL = 'https://yt-dl.org/latest/youtube-dl.tar.gz'
 VERSION_URL = 'https://yt-dl.org/latest/version'
-
+PY3 = sys.version_info >= (3, 0)
 
 def set_youtube_dl_importPath():
     return
     # if not util.getSetting('use_update_version',True): return
     import os
-    import xbmc
+    from kodi_six import xbmc
     youtube_dl_path = os.path.join(util.PROFILE_PATH, 'youtube-dl')
     if not os.path.exists(youtube_dl_path):
         return
@@ -27,7 +27,10 @@ def updateCore(force=False):
         return
     import xbmc
     import os
-    import urllib
+    if PY3:
+        from urllib.request import urlretrieve
+    else:
+        from urllib import urlretrieve
     import urllib2
     import tarfile
 
@@ -55,7 +58,7 @@ def updateCore(force=False):
             shutil.rmtree(extractedPath, ignore_errors=True)
             util.LOG('Old version removed')
 
-        urllib.urlretrieve(LATEST_URL, filename=archivePath)
+        urlretrieve(LATEST_URL, filename=archivePath)
         with tarfile.open(archivePath, mode='r:gz') as tf:
             members = [m for m in tf.getmembers() if m.name.startswith('youtube-dl/youtube_dl')]  # get just the files from the youtube_dl source directory
             tf.extractall(path=profile, members=members)

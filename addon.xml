@@ -3,6 +3,7 @@
     <requires>
         <import addon="xbmc.python" version="2.14.0" />
         <import addon="script.module.addon.signals" version="0.0.1"/>
+        <import addon="script.module.kodi-six" version="0.0.4"/>
     </requires>
     <extension point="xbmc.python.script" library="control.py">
         <provides>executable</provides>
