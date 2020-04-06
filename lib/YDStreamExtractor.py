@@ -476,7 +476,7 @@ def generateBlacklist(regexs):
     Extractors that match any of the regular expressions are added.
     """
     import re
-    from .youtube_dl.extractor import gen_extractors
+    from youtube_dl.extractor import gen_extractors
     for ie in gen_extractors():
         for r in regexs:
             if re.search(r, ie.IE_NAME):

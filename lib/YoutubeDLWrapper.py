@@ -335,7 +335,7 @@ def _getYTDL():
 
 
 def download(info):
-    from .youtube_dl import downloader
+    from youtube_dl import downloader
     ytdl = _getYTDL()
     name = ytdl.prepare_filename(info)
     if 'http_headers' not in info:
