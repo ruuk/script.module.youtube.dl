@@ -1,6 +1,7 @@
-*** 19.912.2 ***
+*** 20.324.0 ***
 
 Add Python 3 compatibility
+Updated youtube-dl core to 2020.03.24
 
 *** 19.912.1 ***
 
