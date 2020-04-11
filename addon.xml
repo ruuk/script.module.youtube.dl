@@ -17,7 +17,7 @@
         <description lang="el_EL">Βοηθητική μονάδα πρόσβασης στους επιλυτές youtube-dl για την εξαγωγή ροών βίντεο από εκατοντάδες ιστότοπους. Η έκδοση βασίζεται στην έκδοση ημερομηνίας του youtube-dl: EE.MHH.EK όπου ΕΚ η υπό-έκδοση συγκεκριμένα για το πρόσθετο. Επιπλέον δίνει δυνατότητα μεταφόρτωσης στο παρασκήνιο με ουρά και διαχειριστή αυτής.</description>
         <summary lang="es_ES">Módulo que proporciona acceso a YouTube-dl para la extracción de flujos de video</summary>
         <description lang="es_ES">Módulo que proporciona acceso a YouTube-dl para la extracción de flujos de video de cientos de sitios. La versión está basada en la versión de fecha youtube-dl: YY.MDD.V donde V es la subversión específica del complemento. También permite descargas con la opción de descarga en segundo plano con una cola y un administrador de colas.</description>
-        <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+        <license>LGPL-2.1-only</license>
         <forum>https://forum.kodi.tv/showthread.php?tid=200877</forum>
         <source>https://github.com/ruuk/script.module.youtube.dl</source>
         <assets>
