@@ -1,3 +1,8 @@
+*** 20.616.0 ***
+
+Updated youtube-dl core to 2020.06.16.1
+Use new abortRequested API
+
 *** 20.324.0 ***
 
 Add Python 3 compatibility
