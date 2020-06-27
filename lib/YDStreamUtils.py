@@ -196,9 +196,8 @@ def moveFile(file_path, dest_path, filename=None):
     destFilePath = os.path.join(dest_path, fname)
     if xbmcvfs.copy(file_path, destFilePath):
         xbmcvfs.delete(file_path)
-        return True
-
-    return False
+        return destFilePath
+    return ''
 
 
 def getDownloadPath(use_default=None):
