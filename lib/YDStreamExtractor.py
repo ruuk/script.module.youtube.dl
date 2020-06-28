@@ -46,6 +46,10 @@ class DownloadResult:
 # Private Methods
 ###############################################################################
 def _getVideoFormat(info):
+    """
+    Quality is 0=SD, 1=720p, 2=1080p, 3=Highest Available
+    and represents a maximum.
+    """
     try:
         quality = info['quality']
     except KeyError:
@@ -232,7 +236,6 @@ def _completeInfo(info):
         info['url'] = info['requested_formats'][0]['url']
 
 
-
 def _getExtension(info):
     ext = _actualGetExtension(info)
     if ext == 'm3u8':
@@ -329,8 +332,8 @@ def _cancelDownload(_cancel=True):
     YoutubeDLWrapper._DOWNLOAD_CANCEL = _cancel
 
 
-def _handleDownload(info, path=None, duration=None, bg=False):
-    path = path or StreamUtils.getDownloadPath(use_default=True)  # this is done already in handleDownload...
+def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
+    path = path or StreamUtils.getDownloadPath(use_default=True)  # this is already done in handleDownload...
     if bg:
         downloader = StreamUtils.DownloadProgressBG
     else:
@@ -341,7 +344,7 @@ def _handleDownload(info, path=None, duration=None, bg=False):
         try:
             setOutputCallback(prog.updateCallback)
             _setDownloadDuration(duration)
-            result = download(info, util.TMP_PATH)
+            result = download(vidinfo, util.TMP_PATH)
         finally:
             setOutputCallback(None)
             _setDownloadDuration(duration)
@@ -359,7 +362,7 @@ def _handleDownload(info, path=None, duration=None, bg=False):
         if os.path.exists(part):
             os.rename(part, filePath)
 
-    destpath = StreamUtils.moveFile(filePath, path, filename=info.get('filename'))
+    destpath = StreamUtils.moveFile(filePath, path, filename=filename)
     if not destpath:
         StreamUtils.showMessage(StreamUtils.T(32036), StreamUtils.T(32037), '', filePath, bg=bg)
     else:
@@ -406,18 +409,20 @@ def getVideoInfo(url, quality=None, resolve_redirects=False):
     return info
 
 
-def handleDownload(info, duration=None, bg=False, path=None):
+def handleDownload(info, duration=None, bg=False, path=None, filename=None):
     """
     Download the selected video to a path the user chooses.
     Displays a progress dialog and ok/error message when finished.
     Set bg=True to download in the background.
     Returns a DownloadResult object for foreground transfers.
     """
+    if isinstance(info, YoutubeDLWrapper.VideoInfo):  # backward comptibility
+        info = info.info
     path = path or StreamUtils.getDownloadPath()
     if bg:
         servicecontrol.ServiceControl().download(info, path, duration)
     else:
-        return _handleDownload(info, path, duration=duration, bg=False)
+        return _handleDownload(info, path=path, filename=filename, duration=duration, bg=False)
 
 
 def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
@@ -427,7 +432,8 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     Returns a DownloadResult object.
     """
 
-    # info = _convertInfo(info)  # Get the right format
+    # keep temporarily for backward compatibilty with xbmcgui.ListItem objects (any test examples?)
+    info = _convertInfo(info)  # Get the right format
 
     _cancelDownload(_cancel=False)
     path_template = os.path.join(path, template)
@@ -436,11 +442,14 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     ytdl.params['outtmpl'] = path_template
     ytdl.params['format'] = _getVideoFormat(info)
     # import web_pdb; web_pdb.set_trace()
-    ie_result = ytdl.extract_info(info['url'], download=False)
+
+    ie_result = ytdl.extract_info(info.get('url', info['webpage_url']), download=False)
     filepath = ytdl.prepare_filename(ie_result)
     _completeInfo(ie_result)  # Make sure we have the needed bits
+
     import AddonSignals
     signalPayload = {'title': ie_result['title'], 'url': ie_result['url'], 'download.ID': ie_result['download.ID']}
+
     try:
         AddonSignals.sendSignal('download.started', signalPayload, source_id='script.module.youtube.dl')
         dl_result = YoutubeDLWrapper.download(ie_result)
