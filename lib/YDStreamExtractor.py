@@ -354,6 +354,7 @@ def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
 
     filePath = result.filepath
     part = filePath + u'.part'
+    # import web_pdb; web_pdb.set_trace()
     try:
         if os.path.exists(part):
             os.rename(part, filePath)
@@ -420,7 +421,7 @@ def handleDownload(info, duration=None, bg=False, path=None, filename=None):
         info = info.info
     path = path or StreamUtils.getDownloadPath()
     if bg:
-        servicecontrol.ServiceControl().download(info, path, duration)
+        servicecontrol.ServiceControl().download(info, path, filename, duration)
     else:
         return _handleDownload(info, path=path, filename=filename, duration=duration, bg=False)
 
@@ -441,9 +442,11 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     ytdl.params['quiet'] = True
     ytdl.params['outtmpl'] = path_template
     ytdl.params['format'] = _getVideoFormat(info)
-    # import web_pdb; web_pdb.set_trace()
 
-    ie_result = ytdl.extract_info(info.get('url', info['webpage_url']), download=False)
+    try:
+        ie_result = ytdl.extract_info(info['url'], download=False)
+    except KeyError:
+        ie_result = ytdl.extract_info(info['webpage_url'], download=False)
     filepath = ytdl.prepare_filename(ie_result)
     _completeInfo(ie_result)  # Make sure we have the needed bits
 

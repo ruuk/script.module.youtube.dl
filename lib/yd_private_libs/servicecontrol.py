@@ -23,10 +23,11 @@ def safeDecode(enc_text):
 
 
 class ServiceControl(object):
-    def download(self, info, path, duration):
+    def download(self, info, path, filename, duration):
         addonPath = xbmc.translatePath(util.ADDON.getAddonInfo('path')).decode('utf-8')
         service = os.path.join(addonPath, 'service.py')
-        data = {'data': info, 'path': path, 'duration': duration}
+        data = {'data': info, 'path': path, 'filename': filename, 'duration': duration}
+
         dataJSON = json.dumps(data)
         jsonqueue.XBMCJsonRAFifoQueue(util.QUEUE_FILE).push(binascii.hexlify(dataJSON))
         xbmc.executebuiltin('RunScript({0})'.format(service))
