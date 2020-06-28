@@ -334,6 +334,8 @@ def _cancelDownload(_cancel=True):
 
 def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
     path = path or StreamUtils.getDownloadPath(use_default=True)  # this is already done in handleDownload...
+    template = u'{}.%(ext)s'.format(filename or u'%(title)s-%(id)s')
+
     if bg:
         downloader = StreamUtils.DownloadProgressBG
     else:
@@ -344,7 +346,7 @@ def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
         try:
             setOutputCallback(prog.updateCallback)
             _setDownloadDuration(duration)
-            result = download(vidinfo, util.TMP_PATH)
+            result = download(vidinfo, util.TMP_PATH, template=template)
         finally:
             setOutputCallback(None)
             _setDownloadDuration(duration)
@@ -354,7 +356,6 @@ def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
 
     filePath = result.filepath
     part = filePath + u'.part'
-    # import web_pdb; web_pdb.set_trace()
     try:
         if os.path.exists(part):
             os.rename(part, filePath)
@@ -363,7 +364,7 @@ def _handleDownload(vidinfo, path=None, filename=None, duration=None, bg=False):
         if os.path.exists(part):
             os.rename(part, filePath)
 
-    destpath = StreamUtils.moveFile(filePath, path, filename=filename)
+    destpath = StreamUtils.moveFile(filePath, path)
     if not destpath:
         StreamUtils.showMessage(StreamUtils.T(32036), StreamUtils.T(32037), '', filePath, bg=bg)
     else:
@@ -419,6 +420,7 @@ def handleDownload(info, duration=None, bg=False, path=None, filename=None):
     """
     if isinstance(info, YoutubeDLWrapper.VideoInfo):  # backward comptibility
         info = info.info
+        info['url'] = info['webpage_url']
     path = path or StreamUtils.getDownloadPath()
     if bg:
         servicecontrol.ServiceControl().download(info, path, filename, duration)
@@ -443,10 +445,7 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     ytdl.params['outtmpl'] = path_template
     ytdl.params['format'] = _getVideoFormat(info)
 
-    try:
-        ie_result = ytdl.extract_info(info['url'], download=False)
-    except KeyError:
-        ie_result = ytdl.extract_info(info['webpage_url'], download=False)
+    ie_result = ytdl.extract_info(info['url'], download=False)
     filepath = ytdl.prepare_filename(ie_result)
     _completeInfo(ie_result)  # Make sure we have the needed bits
 

@@ -193,15 +193,12 @@ def downloadProgressCallbackBG(prog, data):
 ###############################################################################
 def moveFile(file_path, dest_path, filename=None):
     fname = filename or os.path.basename(file_path)
-    _, ext = os.path.splitext(file_path)
-    if not fname.endswith(ext):
-        fname += ext
     destFilePath = os.path.join(dest_path, fname)
     if xbmcvfs.copy(file_path, destFilePath):
         xbmcvfs.delete(file_path)
         return destFilePath
-    return ''
 
+    return ''
 
 def getDownloadPath(use_default=None):
     if use_default is None:
