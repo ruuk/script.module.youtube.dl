@@ -418,7 +418,7 @@ def handleDownload(info, duration=None, bg=False, path=None, filename=None):
     Set bg=True to download in the background.
     Returns a DownloadResult object for foreground transfers.
     """
-    if isinstance(info, YoutubeDLWrapper.VideoInfo):  # backward comptibility
+    if isinstance(info, YoutubeDLWrapper.VideoInfo):  # backward compatibility
         info = info.info
         info['url'] = info['webpage_url']
     path = path or StreamUtils.getDownloadPath()
@@ -435,7 +435,7 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     Returns a DownloadResult object.
     """
 
-    # keep temporarily for backward compatibilty with xbmcgui.ListItem objects (any test examples?)
+    # kept temporarily for backward compatibilty with xbmcgui.ListItem objects (any test examples?)
     info = _convertInfo(info)  # Get the right format
 
     _cancelDownload(_cancel=False)
@@ -444,6 +444,7 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     ytdl.params['quiet'] = True
     ytdl.params['outtmpl'] = path_template
     ytdl.params['format'] = _getVideoFormat(info)
+    ytdl.params.update(info.get('extra_info', {}))
 
     ie_result = ytdl.extract_info(info['url'], download=False)
     filepath = ytdl.prepare_filename(ie_result)

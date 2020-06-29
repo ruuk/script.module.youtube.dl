@@ -341,4 +341,4 @@ def download(info):
     ytdl = _getYTDL()
     if 'http_headers' not in info:
         info['http_headers'] = std_headers
-    return ytdl.process_ie_result(info)
+    return ytdl.process_info(info)
