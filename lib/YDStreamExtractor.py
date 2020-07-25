@@ -441,10 +441,8 @@ def download(info, path, template='%(title)s-%(id)s.%(ext)s'):
     _cancelDownload(_cancel=False)
     path_template = os.path.join(path, template)
     ytdl = YoutubeDLWrapper._getYTDL()
-    ytdl.params['quiet'] = True
-    ytdl.params['outtmpl'] = path_template
-    ytdl.params['format'] = _getVideoFormat(info)
-    ytdl.params.update(info.get('extra_info', {}))
+    ytdl.clearDownloadParams()
+    ytdl.params.update({'outtmpl': path_template, 'format': _getVideoFormat(info)})
 
     ie_result = ytdl.extract_info(info['url'], download=False)
     filepath = ytdl.prepare_filename(ie_result)
