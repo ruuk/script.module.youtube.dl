@@ -59,7 +59,11 @@ except TypeError:
         class datetime(orig):
             @classmethod
             def strptime(cls, dstring, dformat):
-                return datetime.datetime(*(time.strptime(dstring, dformat)[0:6]))
+                try:
+                    return datetime.datetime(*(time.strptime(dstring, dformat)[0:6]))
+                except AttributeError:
+                    return datetime(*(time.strptime(dstring, dformat)[0:6]))
+
 
             def __repr__(self):
                 return 'datetime.' + orig.__repr__(self)
