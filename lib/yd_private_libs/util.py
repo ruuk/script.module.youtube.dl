@@ -34,7 +34,7 @@ DEBUG = ADDON.getSetting('debug') == 'true'
 def LOG(msg, debug=False):
     if debug and not DEBUG:
         return
-    xbmc.log('script.module.youtube.dl: {0}'.format(msg), xbmc.LOGNOTICE)
+    xbmc.log('script.module.youtube.dl: {0}'.format(msg), xbmc.LOGINFO)
 
 
 def ERROR(msg=None, hide_tb=False):
@@ -44,7 +44,7 @@ def ERROR(msg=None, hide_tb=False):
         errtext = sys.exc_info()[1]
         LOG('%s::%s (%d) - %s' % (msg or '?', sys.exc_info()[2].tb_frame.f_code.co_name, sys.exc_info()[2].tb_lineno, errtext))
         return
-    xbmc.log(traceback.format_exc(), xbmc.LOGNOTICE)
+    xbmc.log(traceback.format_exc(), xbmc.LOGINFO)
 
 
 def getSetting(key, default=None):
